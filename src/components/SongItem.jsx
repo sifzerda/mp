@@ -3,6 +3,7 @@
 import { View, Text, Pressable, StyleSheet } from "react-native";
 import colors from "../theme/colors";
 import useFavoritesStore from "../store/useFavoritesStore";
+import AlbumArtwork from "./AlbumArtwork";
 
 function formatDuration(seconds) {
   const total = Math.max(0, Math.floor(Number(seconds) || 0));
@@ -18,13 +19,8 @@ export default function SongItem({
   onAddToPlaylist,
   onRemoveFromPlaylist,
 }) {
-  const isFavorite = useFavoritesStore((s) =>
-    s.favorites.includes(String(song.id))
-  );
-
-  const toggleFavorite = useFavoritesStore(
-    (s) => s.toggleFavorite
-  );
+  const isFavorite = useFavoritesStore((s) => s.favorites.includes(String(song.id)));
+  const toggleFavorite = useFavoritesStore((s) => s.toggleFavorite);
 
   return (
     <View style={styles.container}>
@@ -35,9 +31,7 @@ export default function SongItem({
           pressed && styles.pressed,
         ]}
       >
-        <View style={styles.artwork}>
-          <Text style={styles.note}>♫</Text>
-        </View>
+        <AlbumArtwork song={song} size={48} />
 
         <View style={styles.info}>
           <Text style={styles.title} numberOfLines={1}>

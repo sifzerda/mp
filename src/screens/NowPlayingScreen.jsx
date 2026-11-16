@@ -1,12 +1,16 @@
 // src/screens/NowPlayingScreen.jsx
 
+import { useMemo } from "react";
+import useMusicStore from "../store/useMusicStore";
 import { View, Text, Pressable, StyleSheet } from "react-native";
 import Slider from "@react-native-community/slider";
 import TrackPlayer, { useActiveTrack, useProgress } from "react-native-track-player";
 import PlaybackControls from "../components/PlaybackControls";
+import AlbumArtwork from "../components/AlbumArtwork";
+import PlaybackModes from "../components/PlaybackModes";
+
 import usePlayerStore from "../store/usePlayerStore";
 import useFavoritesStore from "../store/useFavoritesStore";
-import PlaybackModes from "../components/PlaybackModes";
 
 function formatTime(seconds) {
   const total = Math.floor(Math.max(0, seconds || 0));
@@ -18,8 +22,17 @@ function formatTime(seconds) {
 
 export default function NowPlayingScreen() {
   const track = useActiveTrack();
-  const { position, duration } = useProgress(500);
+  const songs = useMusicStore((s) => s.songs);
 
+  const artworkSong = useMemo(() => {
+    if (!track) return null;
+
+    return (
+      songs.find((song) => String(song.id) === String(track.id)) ||
+      track
+    );
+  }, [songs, track]);
+  const { position, duration } = useProgress(500);
   const closePlayer = usePlayerStore((s) => s.closePlayer);
   const favorites = useFavoritesStore((s) => s.favorites);
   const toggleFavorite = useFavoritesStore((s) => s.toggleFavorite);
@@ -42,8 +55,9 @@ export default function NowPlayingScreen() {
         <Text style={styles.back}>‹ Library</Text>
       </Pressable>
 
-      <View style={styles.artwork}>
-        <Text style={styles.artworkIcon}>♫</Text>
+      {/* Album artwork */}
+      <View style={styles.artworkContainer}>
+        <AlbumArtwork song={artworkSong} size={280} borderRadius={24} />
       </View>
 
       <View style={styles.titleRow}>
