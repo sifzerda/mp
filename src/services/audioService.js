@@ -20,6 +20,7 @@ export function initializePlayer() {
           Capability.SeekTo,
         ],
         compactCapabilities: [
+          Capability.SkipToPrevious,
           Capability.Play,
           Capability.Pause,
           Capability.SkipToNext,
@@ -49,10 +50,7 @@ export function normalizeSong(song) {
   return {
     id: String(song.id ?? url),
     url,
-    title:
-      song.title ??
-      song.filename ??
-      "Unknown title",
+    title: song.title ?? song.filename ?? "Unknown title",
     artist: song.artist ?? "Unknown artist",
     album: song.album ?? "Unknown album",
     duration: Number(song.duration) || 0,
@@ -93,26 +91,29 @@ export async function togglePlayback() {
 export async function nextTrack() {
   await initializePlayer();
 
-  try {
-    await TrackPlayer.skipToNext();
-  } catch {
-    // Already at the end of the queue.
+  const index = await TrackPlayer.getActiveTrackIndex();
+  const queue = await TrackPlayer.getQueue();
+
+  if (index == null || index >= queue.length - 1) {
+    return;
   }
+
+  await TrackPlayer.skipToNext();
 }
 
 export async function previousTrack() {
   await initializePlayer();
 
+  const index = await TrackPlayer.getActiveTrackIndex();
+
+  if (index == null) return;
+
   const { position } = await TrackPlayer.getProgress();
 
-  if (position > 3) {
+  if (position > 3 || index === 0) {
     await TrackPlayer.seekTo(0);
     return;
   }
 
-  try {
-    await TrackPlayer.skipToPrevious();
-  } catch {
-    await TrackPlayer.seekTo(0);
-  }
+  await TrackPlayer.skipToPrevious();
 }

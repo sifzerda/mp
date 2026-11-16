@@ -1,6 +1,13 @@
 // src/components/PlaybackControls.jsx
 
-import { View, Text, Pressable, StyleSheet } from "react-native";
+import { useState } from "react";
+import {
+  View,
+  Text,
+  Pressable,
+  StyleSheet,
+} from "react-native";
+
 import {
   usePlaybackState,
   State,
@@ -14,24 +21,55 @@ import {
 
 export default function PlaybackControls() {
   const playback = usePlaybackState();
+  const [busy, setBusy] = useState(false);
+
   const isPlaying = playback.state === State.Playing;
+
+  async function handleAction(action) {
+    if (busy) return;
+
+    setBusy(true);
+
+    try {
+      await action();
+    } catch (error) {
+      console.error("Playback control error:", error);
+    } finally {
+      setBusy(false);
+    }
+  }
 
   return (
     <View style={styles.container}>
-      <Pressable onPress={previousTrack} style={styles.button}>
+      <Pressable
+        onPress={() => handleAction(previousTrack)}
+        disabled={busy}
+        style={styles.button}
+        accessibilityRole="button"
+        accessibilityLabel="Previous track"
+      >
         <Text style={styles.icon}>⏮</Text>
       </Pressable>
 
       <Pressable
-        onPress={togglePlayback}
+        onPress={() => handleAction(togglePlayback)}
+        disabled={busy}
         style={styles.playButton}
+        accessibilityRole="button"
+        accessibilityLabel={isPlaying ? "Pause" : "Play"}
       >
         <Text style={styles.playIcon}>
           {isPlaying ? "⏸" : "▶"}
         </Text>
       </Pressable>
 
-      <Pressable onPress={nextTrack} style={styles.button}>
+      <Pressable
+        onPress={() => handleAction(nextTrack)}
+        disabled={busy}
+        style={styles.button}
+        accessibilityRole="button"
+        accessibilityLabel="Next track"
+      >
         <Text style={styles.icon}>⏭</Text>
       </Pressable>
     </View>
