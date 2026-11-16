@@ -9,7 +9,7 @@ let queueOperation = Promise.resolve();
 function runQueueOperation(operation) {
   const result = queueOperation.then(operation);
 
-  queueOperation = result.catch(() => {});
+  queueOperation = result.catch(() => { });
 
   return result;
 }
@@ -20,7 +20,8 @@ export function initializePlayer() {
       await TrackPlayer.setupPlayer({
         autoHandleInterruptions: true,
       });
-
+      const speed = usePlaybackStore.getState().speed;
+      await TrackPlayer.setRate(speed);
       await TrackPlayer.updateOptions({
         capabilities: [
           Capability.Play,
@@ -135,11 +136,11 @@ export async function playSong(song, songs = [song]) {
 
     const queue = shuffle
       ? [
-          selected,
-          ...shuffleTracks(
-            tracks.filter((track) => track.id !== selectedId)
-          ),
-        ]
+        selected,
+        ...shuffleTracks(
+          tracks.filter((track) => track.id !== selectedId)
+        ),
+      ]
       : tracks;
 
     await TrackPlayer.setQueue(queue);
@@ -260,4 +261,136 @@ export async function cycleRepeat() {
   await TrackPlayer.setRepeatMode(trackPlayerModes[next]);
 
   store.setRepeat(next);
+}
+
+
+function syncEditedQueue(queue) {
+  // Manual queue edits become the new saved order.
+  // This prevents turning shuffle off from undoing edits.
+  usePlaybackStore.getState().setOriginalQueue(queue);
+}
+
+export async function getPlaybackQueue() {
+  await initializePlayer();
+
+  const [tracks, activeIndex] = await Promise.all([
+    TrackPlayer.getQueue(),
+    TrackPlayer.getActiveTrackIndex(),
+  ]);
+
+  return {
+    tracks,
+    activeIndex: activeIndex ?? -1,
+  };
+}
+
+export async function addSongToQueue(song) {
+  return runQueueOperation(async () => {
+    await initializePlayer();
+
+    const track = normalizeSong(song);
+    const queue = await TrackPlayer.getQueue();
+
+    // Give newly queued copies unique IDs.
+    track.id = `${track.id}:queued:${Date.now()}:${Math.random()}`;
+
+    await TrackPlayer.add(track);
+
+    syncEditedQueue(await TrackPlayer.getQueue());
+  });
+}
+
+export async function playSongNext(song) {
+  return runQueueOperation(async () => {
+    await initializePlayer();
+
+    const track = normalizeSong(song);
+    const queue = await TrackPlayer.getQueue();
+    const activeIndex = await TrackPlayer.getActiveTrackIndex();
+
+    track.id = `${track.id}:queued:${Date.now()}:${Math.random()}`;
+
+    const insertIndex =
+      activeIndex == null
+        ? queue.length
+        : activeIndex + 1;
+
+    await TrackPlayer.add(track, insertIndex);
+
+    syncEditedQueue(await TrackPlayer.getQueue());
+  });
+}
+
+export async function removeQueuedTrack(index) {
+  return runQueueOperation(async () => {
+    await initializePlayer();
+
+    const queue = await TrackPlayer.getQueue();
+    const activeIndex = await TrackPlayer.getActiveTrackIndex();
+
+    if (
+      activeIndex == null ||
+      index <= activeIndex ||
+      index >= queue.length
+    ) {
+      throw new Error("Only upcoming songs can be removed");
+    }
+
+    await TrackPlayer.remove(index);
+
+    syncEditedQueue(await TrackPlayer.getQueue());
+  });
+}
+
+export async function moveQueuedTrack(fromIndex, toIndex) {
+  return runQueueOperation(async () => {
+    await initializePlayer();
+
+    const queue = await TrackPlayer.getQueue();
+    const activeIndex = await TrackPlayer.getActiveTrackIndex();
+
+    if (
+      activeIndex == null ||
+      fromIndex <= activeIndex ||
+      toIndex <= activeIndex ||
+      fromIndex >= queue.length ||
+      toIndex >= queue.length
+    ) {
+      throw new Error("Only upcoming songs can be reordered");
+    }
+
+    if (fromIndex === toIndex) return;
+
+    await TrackPlayer.move(fromIndex, toIndex);
+
+    syncEditedQueue(await TrackPlayer.getQueue());
+  });
+}
+
+export async function playQueuedTrack(index) {
+  return runQueueOperation(async () => {
+    await initializePlayer();
+
+    const queue = await TrackPlayer.getQueue();
+
+    if (index < 0 || index >= queue.length) {
+      throw new Error("Invalid queue position");
+    }
+
+    await TrackPlayer.skip(index);
+    await TrackPlayer.play();
+  });
+}
+
+export async function setPlaybackSpeed(speed) {
+  const rate = Number(speed);
+
+  if (!Number.isFinite(rate) || rate < 0.5 || rate > 2) {
+    throw new Error("Invalid playback speed");
+  }
+
+  await initializePlayer();
+  await TrackPlayer.setRate(rate);
+
+  usePlaybackStore.getState().setSpeed(rate);
 }

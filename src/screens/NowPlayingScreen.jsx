@@ -1,6 +1,6 @@
 // src/screens/NowPlayingScreen.jsx
 
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import useMusicStore from "../store/useMusicStore";
 import { View, Text, Pressable, StyleSheet } from "react-native";
 import Slider from "@react-native-community/slider";
@@ -8,6 +8,8 @@ import TrackPlayer, { useActiveTrack, useProgress } from "react-native-track-pla
 import PlaybackControls from "../components/PlaybackControls";
 import AlbumArtwork from "../components/AlbumArtwork";
 import PlaybackModes from "../components/PlaybackModes";
+import QueueScreen from "./QueueScreen";
+import PlaybackSpeed from "../components/PlaybackSpeed";
 
 import usePlayerStore from "../store/usePlayerStore";
 import useFavoritesStore from "../store/useFavoritesStore";
@@ -23,6 +25,14 @@ function formatTime(seconds) {
 export default function NowPlayingScreen() {
   const track = useActiveTrack();
   const songs = useMusicStore((s) => s.songs);
+
+  const [showQueue, setShowQueue] = useState(false);
+
+  if (showQueue) {
+    return (
+      <QueueScreen onBack={() => setShowQueue(false)} />
+    );
+  }
 
   const artworkSong = useMemo(() => {
     if (!track) return null;
@@ -109,8 +119,20 @@ export default function NowPlayingScreen() {
         </View>
       </View>
 
+      <Pressable
+        onPress={() => setShowQueue(true)}
+        style={styles.queueButton}
+        accessibilityRole="button"
+        accessibilityLabel="Open playback queue"
+      >
+        <Text style={styles.queueButtonText}>
+          ☷ View Queue
+        </Text>
+      </Pressable>
+
       <PlaybackControls />
       <PlaybackModes />
+      <PlaybackSpeed />
     </View>
   );
 }
@@ -185,4 +207,19 @@ const styles = StyleSheet.create({
   activeHeart: {
     color: "#ff477e",
   },
+  queueButton: {
+    alignSelf: "center",
+    marginTop: 24,
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    backgroundColor: "#142436",
+    borderRadius: 12,
+  },
+
+  queueButtonText: {
+    color: "#00d9ff",
+    fontSize: 15,
+    fontWeight: "700",
+  },
+
 });

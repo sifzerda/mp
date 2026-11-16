@@ -15,7 +15,7 @@ import PlaylistPicker from "../components/PlaylistPicker";
 import DraggablePlaylistSongs from "../components/DraggablePlaylistSongs";
 
 import colors from "../theme/colors";
-import { playSong } from "../services/audioService";
+import { playSong, addSongToQueue, playSongNext } from "../services/audioService";
 
 const UNKNOWN_ARTIST = "Unknown artist";
 const UNKNOWN_ALBUM = "Unknown album";
@@ -218,6 +218,21 @@ export default function LibraryScreen() {
                 ? () => handleRemoveSong(item)
                 : undefined
             }
+            onPlayNext={async () => {
+              try {
+                await playSongNext(item);
+              } catch (error) {
+                Alert.alert("Queue error", error.message);
+              }
+            }}
+
+            onAddToQueue={async () => {
+              try {
+                await addSongToQueue(item);
+              } catch (error) {
+                Alert.alert("Queue error", error.message);
+              }
+            }}
           />
         );
       }
@@ -386,6 +401,8 @@ export default function LibraryScreen() {
           onPlaySong={handlePlaySong}
           onAddToPlaylist={setPickerSong}
           onRemoveSong={handleRemoveSong}
+          onPlayNext={playSongNext}
+          onAddToQueue={addSongToQueue}
           searchActive={query.length > 0}
         />
       ) : (
