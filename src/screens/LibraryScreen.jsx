@@ -1,12 +1,19 @@
 // src/screens/LibraryScreen.jsx
 
-import { useEffect, useMemo, useCallback } from "react";
+import { useEffect, useMemo, useCallback, useState } from "react";
 import { View, Text, FlatList, Pressable, ActivityIndicator, Alert, StyleSheet } from "react-native";
+
 import useMusicStore from "../store/useMusicStore";
 import useFavoritesStore from "../store/useFavoritesStore";
+import usePlaylistStore from "../store/usePlaylistStore";
+
 import SongItem from "../components/SongItem";
 import SearchBar from "../components/SearchBar";
 import LibraryTabs from "../components/LibraryTabs";
+import PlaylistManager from "../components/PlaylistManager";
+import PlaylistPicker from "../components/PlaylistPicker";
+import DraggablePlaylistSongs from "../components/DraggablePlaylistSongs";
+
 import colors from "../theme/colors";
 import { playSong } from "../services/audioService";
 
@@ -28,7 +35,6 @@ function groupSongs(songs, type) {
     const artist = getArtist(song);
     const album = getAlbum(song);
     const name = type === "Artists" ? artist : album;
-    // Include artist in album identity to avoid merging albums with the same title.
     const key = type === "Artists" ? artist : `${artist}\u0000${album}`;
 
     if (!groups.has(key)) {
@@ -43,12 +49,12 @@ function groupSongs(songs, type) {
     groups.get(key).songs.push(song);
   }
 
-  return Array.from(groups.values()).sort((a, b) =>
-    a.name.localeCompare(b.name)
-  );
+  return [...groups.values()].sort((a, b) => a.name.localeCompare(b.name));
 }
 
 export default function LibraryScreen() {
+  const [selectedPlaylistId, setSelectedPlaylistId] = useState(null);
+  const [pickerSong, setPickerSong] = useState(null);
   const songs = useMusicStore((s) => s.songs);
   const search = useMusicStore((s) => s.search);
   const activeTab = useMusicStore((s) => s.activeTab);
@@ -59,19 +65,36 @@ export default function LibraryScreen() {
   const loadSongs = useMusicStore((s) => s.loadSongs);
   const selectCollection = useMusicStore((s) => s.selectCollection);
   const clearCollection = useMusicStore((s) => s.clearCollection);
-  const loadFavorites = useFavoritesStore((state) => state.loadFavorites);
   const favorites = useFavoritesStore((s) => s.favorites);
+  const loadFavorites = useFavoritesStore((s) => s.loadFavorites);
+  const playlists = usePlaylistStore((s) => s.playlists);
+  const loadPlaylists = usePlaylistStore((s) => s.loadPlaylists);
+  const removeSong = usePlaylistStore((s) => s.removeSong);
 
   useEffect(() => {
     loadSongs();
     loadFavorites();
-  }, [loadSongs, loadFavorites]);
+    loadPlaylists();
+  }, [loadSongs, loadFavorites, loadPlaylists]);
+
+  const selectedPlaylist = useMemo(() => playlists.find((playlist) => playlist.id === selectedPlaylistId) || null, [playlists, selectedPlaylistId]);
 
   const query = search.trim().toLowerCase();
-  const showingSongs = activeTab === "Songs" || activeTab === "Favorites" || !!selectedCollection;
+
+  const isPlaylistTab = activeTab === "Playlists";
+  const isPlaylistDetail = isPlaylistTab && !!selectedPlaylist;
+
+  const showingSongs =
+    activeTab === "Songs" ||
+    activeTab === "Favorites" ||
+    isPlaylistDetail ||
+    (!!selectedCollection && !isPlaylistTab);
 
   const collections = useMemo(() => {
-    if (activeTab === "Artists" || activeTab === "Albums") {
+    if (
+      activeTab === "Artists" ||
+      activeTab === "Albums"
+    ) {
       return groupSongs(songs, activeTab);
     }
 
@@ -80,41 +103,59 @@ export default function LibraryScreen() {
 
   const collectionSongs = useMemo(() => {
     if (activeTab === "Favorites") {
-      return songs.filter((song) =>
-        favorites.includes(String(song.id))
-      );
+      const ids = new Set(favorites);
+      return songs.filter((song) => ids.has(String(song.id)));
+    }
+
+    if (activeTab === "Playlists") {
+      if (!selectedPlaylist) return [];
+
+      const songMap = new Map(songs.map((song) => [String(song.id), song]));
+
+      return selectedPlaylist.songIds
+        .map((id) => songMap.get(String(id)))
+        .filter(Boolean);
     }
 
     if (!selectedCollection) return songs;
 
     if (selectedCollection.type === "Artists") {
       return songs.filter(
-        (song) =>
-          getArtist(song) === selectedCollection.name
+        (song) => getArtist(song) === selectedCollection.name);
+    }
+
+    if (selectedCollection.type === "Albums") {
+      return songs.filter((song) =>
+        getAlbum(song) === selectedCollection.name &&
+        getArtist(song) === selectedCollection.artist
       );
     }
 
-    return songs.filter(
-      (song) =>
-        getAlbum(song) === selectedCollection.name &&
-        getArtist(song) === selectedCollection.artist
-    );
-  }, [songs, activeTab, selectedCollection, favorites]);
+    return songs;
+  }, [
+    songs,
+    activeTab,
+    selectedCollection,
+    selectedPlaylist,
+    favorites,
+  ]);
 
   const items = useMemo(() => {
     if (showingSongs) {
       return collectionSongs.filter((song) =>
-        [song.title, song.artist, song.album].some((value) => String(value ?? "")
-          .toLowerCase()
-          .includes(query)
+        [song.title, song.artist, song.album].some((value) =>
+          String(value ?? "")
+            .toLowerCase()
+            .includes(query)
         )
       );
     }
 
     return collections.filter((collection) =>
-      [collection.name, collection.artist].some((value) => String(value ?? "")
-        .toLowerCase()
-        .includes(query)
+      [collection.name, collection.artist].some(
+        (value) => String(value ?? "")
+          .toLowerCase()
+          .includes(query)
       )
     );
   }, [showingSongs, collectionSongs, collections, query]);
@@ -126,20 +167,58 @@ export default function LibraryScreen() {
       } catch (err) {
         console.error("Playback error:", err);
 
-        Alert.alert(
-          "Unable to play song",
-          err?.message ?? "An unexpected error occurred."
-        );
+        Alert.alert("Unable to play song", err?.message || "An unexpected error occurred.");
       }
     },
     [collectionSongs]
+  );
+
+  const handleRemoveSong = useCallback(
+    (song) => {
+      if (!selectedPlaylist) return;
+
+      Alert.alert(
+        "Remove song?",
+        `Remove "${song.title}" from "${selectedPlaylist.name}"?`,
+        [
+          { text: "Cancel", style: "cancel" },
+          {
+            text: "Remove",
+            style: "destructive",
+            onPress: async () => {
+              try {
+                await removeSong(
+                  selectedPlaylist.id,
+                  song.id
+                );
+              } catch (err) {
+                Alert.alert(
+                  "Error",
+                  "Unable to remove song from playlist."
+                );
+              }
+            },
+          },
+        ]
+      );
+    },
+    [selectedPlaylist, removeSong]
   );
 
   const renderItem = useCallback(
     ({ item }) => {
       if (showingSongs) {
         return (
-          <SongItem song={item} onPress={() => handlePlaySong(item)} />
+          <SongItem
+            song={item}
+            onPress={() => handlePlaySong(item)}
+            onAddToPlaylist={() => setPickerSong(item)}
+            onRemoveFromPlaylist={
+              isPlaylistDetail
+                ? () => handleRemoveSong(item)
+                : undefined
+            }
+          />
         );
       }
 
@@ -182,6 +261,8 @@ export default function LibraryScreen() {
     [
       showingSongs,
       handlePlaySong,
+      isPlaylistDetail,
+      handleRemoveSong,
       selectCollection,
       activeTab,
     ]
@@ -194,9 +275,15 @@ export default function LibraryScreen() {
         ? error
         : query
           ? "No matching results."
-          : songs.length === 0
-            ? "No music found on your device."
-            : "No songs found.";
+          : activeTab === "Favorites"
+            ? "No favorite songs yet."
+            : isPlaylistDetail
+              ? "This playlist is empty. Add songs using ＋."
+              : songs.length === 0
+                ? "No music found on your device."
+                : "No songs found.";
+
+  const showPlaylistManager = isPlaylistTab && !selectedPlaylist;
 
   return (
     <View style={styles.container}>
@@ -214,24 +301,54 @@ export default function LibraryScreen() {
           disabled={loading}
           style={styles.refreshButton}
         >
-          <Text style={styles.refreshText}>
-            Refresh
-          </Text>
+          <Text style={styles.refreshText}>Refresh</Text>
         </Pressable>
       </View>
 
       <LibraryTabs />
 
-      {selectedCollection && (
+      {/* Selected playlist header */}
+      {isPlaylistDetail && (
+        <View style={styles.collectionHeader}>
+          <Pressable
+            onPress={() => setSelectedPlaylistId(null)}
+          >
+            <Text style={styles.back}>
+              ‹ Back to Playlists
+            </Text>
+          </Pressable>
+
+          <Text style={styles.collectionTitle}>
+            {selectedPlaylist.name}
+          </Text>
+
+          <Text style={styles.subtitle}>
+            {collectionSongs.length} songs
+          </Text>
+
+          {collectionSongs.length > 0 && (
+            <Pressable
+              style={styles.playAllButton}
+              onPress={() =>
+                handlePlaySong(collectionSongs[0])
+              }
+            >
+              <Text style={styles.playAllText}>
+                ▶ Play Playlist
+              </Text>
+            </Pressable>
+          )}
+        </View>
+      )}
+
+      {/* Artists / Albums collection header */}
+      {!isPlaylistTab && selectedCollection && (
         <View style={styles.collectionHeader}>
           <Pressable onPress={clearCollection}>
             <Text style={styles.back}>‹ Back</Text>
           </Pressable>
 
-          <Text
-            style={styles.collectionTitle}
-            numberOfLines={2}
-          >
+          <Text style={styles.collectionTitle}>
             {selectedCollection.name}
           </Text>
 
@@ -241,8 +358,10 @@ export default function LibraryScreen() {
         </View>
       )}
 
-      <SearchBar />
+      {/* Search */}
+      {!showPlaylistManager && <SearchBar />}
 
+      {/* Main content */}
       {loading && songs.length === 0 ? (
         <View style={styles.center}>
           <ActivityIndicator
@@ -254,6 +373,21 @@ export default function LibraryScreen() {
             Scanning your music...
           </Text>
         </View>
+      ) : showPlaylistManager ? (
+        <PlaylistManager
+          onSelect={(playlist) =>
+            setSelectedPlaylistId(playlist.id)
+          }
+        />
+      ) : isPlaylistDetail ? (
+        <DraggablePlaylistSongs
+          playlist={selectedPlaylist}
+          songs={items}
+          onPlaySong={handlePlaySong}
+          onAddToPlaylist={setPickerSong}
+          onRemoveSong={handleRemoveSong}
+          searchActive={query.length > 0}
+        />
       ) : (
         <FlatList
           data={items}
@@ -285,6 +419,13 @@ export default function LibraryScreen() {
           }
         />
       )}
+
+      {/* Add song to playlist modal */}
+      <PlaylistPicker
+        visible={!!pickerSong}
+        song={pickerSong}
+        onClose={() => setPickerSong(null)}
+      />
     </View>
   );
 }
@@ -397,6 +538,18 @@ const styles = StyleSheet.create({
   },
   retryText: {
     color: colors.text,
+    fontWeight: "700",
+  },
+  playAllButton: {
+    alignSelf: "flex-start",
+    backgroundColor: colors.primary,
+    paddingHorizontal: 18,
+    paddingVertical: 11,
+    borderRadius: 12,
+    marginTop: 14,
+  },
+  playAllText: {
+    color: "#08121f",
     fontWeight: "700",
   },
 });

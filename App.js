@@ -1,34 +1,19 @@
 // App.js
 
 import { useEffect, useState } from "react";
-import {
-  View,
-  Text,
-  ActivityIndicator,
-  StyleSheet,
-} from "react-native";
-import { StatusBar } from "expo-status-bar";
-import {
-  SafeAreaProvider,
-  SafeAreaView,
-} from "react-native-safe-area-context";
-
+import { View, Text, ActivityIndicator, StyleSheet } from "react-native";
+import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
 import LibraryScreen from "./src/screens/LibraryScreen";
 import NowPlayingScreen from "./src/screens/NowPlayingScreen";
 import MiniPlayer from "./src/components/MiniPlayer";
-
 import usePlayerStore from "./src/store/usePlayerStore";
 import { initializePlayer } from "./src/services/audioService";
-
-import colors from "./src/theme/colors";
 
 export default function App() {
   const [ready, setReady] = useState(false);
   const [error, setError] = useState(null);
-
-  const showNowPlaying = usePlayerStore(
-    (state) => state.showNowPlaying
-  );
+  const showNowPlaying = usePlayerStore((state) => state.showNowPlaying);
 
   useEffect(() => {
     let mounted = true;
@@ -47,31 +32,35 @@ export default function App() {
   }, []);
 
   return (
-    <SafeAreaProvider>
-      <SafeAreaView style={styles.container}>
-        {error ? (
-          <View style={styles.center}>
-            <Text style={styles.error}>{error}</Text>
-          </View>
-        ) : !ready ? (
-          <View style={styles.center}>
-            <ActivityIndicator color="#00d9ff" />
-            <Text style={styles.loading}>
-              Initializing audio player...
-            </Text>
-          </View>
-        ) : showNowPlaying ? (
-          <NowPlayingScreen />
-        ) : (
-          <>
-            <View style={styles.library}>
-              <LibraryScreen />
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <SafeAreaProvider>
+        <SafeAreaView style={styles.container}>
+          {error ? (
+            <View style={styles.center}>
+              <Text style={styles.error}>{error}</Text>
             </View>
-            <MiniPlayer />
-          </>
-        )}
-      </SafeAreaView>
-    </SafeAreaProvider>
+          ) : !ready ? (
+            <View style={styles.center}>
+              <ActivityIndicator color="#00d9ff" />
+
+              <Text style={styles.loading}>
+                Initializing audio player...
+              </Text>
+            </View>
+          ) : showNowPlaying ? (
+            <NowPlayingScreen />
+          ) : (
+            <>
+              <View style={styles.library}>
+                <LibraryScreen />
+              </View>
+
+              <MiniPlayer />
+            </>
+          )}
+        </SafeAreaView>
+      </SafeAreaProvider>
+    </GestureHandlerRootView>
   );
 }
 

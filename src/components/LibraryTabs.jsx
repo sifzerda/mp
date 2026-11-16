@@ -4,7 +4,7 @@ import { ScrollView, Pressable, Text, StyleSheet } from "react-native";
 import useMusicStore from "../store/useMusicStore";
 import colors from "../theme/colors";
 
-const TABS = ["Songs", "Artists", "Albums", "Favorites"];
+const TABS = ["Songs", "Artists", "Albums", "Favorites", "Playlists"];
 
 export default function LibraryTabs() {
   const activeTab = useMusicStore((s) => s.activeTab);
@@ -14,7 +14,8 @@ export default function LibraryTabs() {
     <ScrollView
       horizontal
       showsHorizontalScrollIndicator={false}
-      contentContainerStyle={styles.container}
+      style={styles.container}
+      contentContainerStyle={styles.content}
     >
       {TABS.map((tab) => {
         const active = activeTab === tab;
@@ -45,23 +46,31 @@ export default function LibraryTabs() {
 
 const styles = StyleSheet.create({
   container: {
-    gap: 10,
-    paddingBottom: 18,
+    flexGrow: 0,
+    marginBottom: 18,
+  },
+  content: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    paddingRight: 20,
   },
   tab: {
-    paddingHorizontal: 20,
-    paddingVertical: 10,
+    paddingHorizontal: 16,
+    paddingVertical: 11,
     backgroundColor: colors.surface,
-    borderRadius: 20,
+    borderRadius: 12,
   },
   activeTab: {
     backgroundColor: colors.primary,
   },
   label: {
     color: colors.muted,
+    fontSize: 14,
     fontWeight: "600",
   },
   activeLabel: {
-    color: colors.text,
+    color: "#08121f",
+    fontWeight: "700",
   },
 });
