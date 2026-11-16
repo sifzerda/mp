@@ -1,13 +1,22 @@
 // src/screens/LibraryScreen.jsx
 
-import { useEffect, useMemo } from "react";
-import { View, Text, FlatList, Pressable, ActivityIndicator, StyleSheet } from "react-native";
+import { useEffect, useMemo, useCallback } from "react";
+import {
+  View,
+  Text,
+  FlatList,
+  Pressable,
+  ActivityIndicator,
+  Alert,
+  StyleSheet,
+} from "react-native";
+
 import useMusicStore from "../store/useMusicStore";
 import SongItem from "../components/SongItem";
 import SearchBar from "../components/SearchBar";
 import LibraryTabs from "../components/LibraryTabs";
 import colors from "../theme/colors";
-
+import { playSong } from "../services/audioService";
 
 export default function LibraryScreen() {
   const songs = useMusicStore((s) => s.songs);
@@ -15,7 +24,9 @@ export default function LibraryScreen() {
   const activeTab = useMusicStore((s) => s.activeTab);
   const loading = useMusicStore((s) => s.loading);
   const error = useMusicStore((s) => s.error);
-  const permissionGranted = useMusicStore((s) => s.permissionGranted);
+  const permissionGranted = useMusicStore(
+    (s) => s.permissionGranted
+  );
   const loadSongs = useMusicStore((s) => s.loadSongs);
 
   useEffect(() => {
@@ -28,10 +39,12 @@ export default function LibraryScreen() {
     if (!query) return songs;
 
     return songs.filter((song) =>
-      [song.title, song.artist, song.album]
-        .some((value) =>
-          value.toLowerCase().includes(query)
-        )
+      [song.title, song.artist, song.album].some(
+        (value) =>
+          String(value ?? "")
+            .toLowerCase()
+            .includes(query)
+      )
     );
   }, [songs, search]);
 
@@ -40,10 +53,34 @@ export default function LibraryScreen() {
       return filteredSongs;
     }
 
-    // Artist/album metadata will be implemented
-    // in the next stage.
     return [];
   }, [activeTab, filteredSongs]);
+
+  const handlePlaySong = useCallback(
+    async (song) => {
+      try {
+        await playSong(song, songs);
+      } catch (err) {
+        console.error("Playback error:", err);
+
+        Alert.alert(
+          "Unable to play song",
+          err?.message ?? "An unexpected error occurred."
+        );
+      }
+    },
+    [songs]
+  );
+
+  const renderSong = useCallback(
+    ({ item }) => (
+      <SongItem
+        song={item}
+        onPress={() => handlePlaySong(item)}
+      />
+    ),
+    [handlePlaySong]
+  );
 
   const emptyMessage =
     permissionGranted === false
@@ -89,6 +126,7 @@ export default function LibraryScreen() {
             size="large"
             color={colors.primary}
           />
+
           <Text style={styles.message}>
             Scanning your music...
           </Text>
@@ -96,10 +134,8 @@ export default function LibraryScreen() {
       ) : (
         <FlatList
           data={items}
-          keyExtractor={(item) => item.id}
-          renderItem={({ item }) => (
-            <SongItem song={item} />
-          )}
+          keyExtractor={(item) => String(item.id)}
+          renderItem={renderSong}
           showsVerticalScrollIndicator={false}
           refreshing={loading}
           onRefresh={loadSongs}

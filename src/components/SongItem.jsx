@@ -1,30 +1,48 @@
 // src/components/SongItem.jsx
 
-import { View, Text, Pressable, StyleSheet } from "react-native";
+import {
+  View,
+  Text,
+  Pressable,
+  StyleSheet,
+} from "react-native";
+
 import colors from "../theme/colors";
 
 function formatDuration(seconds) {
-  const total = Math.floor(seconds || 0);
+  const total = Math.max(0, Math.floor(Number(seconds) || 0));
   const minutes = Math.floor(total / 60);
   const remaining = total % 60;
 
   return `${minutes}:${String(remaining).padStart(2, "0")}`;
 }
 
-export default function SongItem({ song }) {
+export default function SongItem({ song, onPress }) {
   return (
-    <Pressable style={styles.container}>
+    <Pressable
+      onPress={onPress}
+      style={({ pressed }) => [
+        styles.container,
+        pressed && styles.pressed,
+      ]}
+    >
       <View style={styles.artwork}>
         <Text style={styles.note}>♫</Text>
       </View>
 
       <View style={styles.info}>
-        <Text style={styles.title} numberOfLines={1}>
-          {song.title}
+        <Text
+          style={styles.title}
+          numberOfLines={1}
+        >
+          {song.title || "Unknown title"}
         </Text>
 
-        <Text style={styles.artist} numberOfLines={1}>
-          {song.artist}
+        <Text
+          style={styles.artist}
+          numberOfLines={1}
+        >
+          {song.artist || "Unknown artist"}
         </Text>
       </View>
 
@@ -40,7 +58,13 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     paddingVertical: 9,
+    paddingHorizontal: 4,
     gap: 12,
+    borderRadius: 12,
+  },
+  pressed: {
+    backgroundColor: colors.surfaceAlt,
+    opacity: 0.8,
   },
   artwork: {
     width: 52,
