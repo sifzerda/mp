@@ -1,22 +1,8 @@
 // src/components/MiniPlayer.jsx 
 
-import {
-  View,
-  Text,
-  Pressable,
-  StyleSheet,
-} from "react-native";
-
-import {
-  useActiveTrack,
-  usePlaybackState,
-  State,
-} from "react-native-track-player";
-
-import {
-  togglePlayback,
-  nextTrack,
-} from "../services/audioService";
+import { View, Text, Pressable, StyleSheet } from "react-native";
+import { useActiveTrack, usePlaybackState, State } from "react-native-track-player";
+import { togglePlayback, nextTrack } from "../services/audioService";
 
 import usePlayerStore from "../store/usePlayerStore";
 

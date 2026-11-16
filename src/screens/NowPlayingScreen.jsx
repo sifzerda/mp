@@ -1,21 +1,11 @@
 // src/screens/NowPlayingScreen.jsx
 
-import {
-  View,
-  Text,
-  Pressable,
-  StyleSheet,
-} from "react-native";
-
+import { View, Text, Pressable, StyleSheet } from "react-native";
 import Slider from "@react-native-community/slider";
-
-import TrackPlayer, {
-  useActiveTrack,
-  useProgress,
-} from "react-native-track-player";
-
+import TrackPlayer, { useActiveTrack, useProgress } from "react-native-track-player";
 import PlaybackControls from "../components/PlaybackControls";
 import usePlayerStore from "../store/usePlayerStore";
+import PlaybackModes from "../components/PlaybackModes";
 
 function formatTime(seconds) {
   const total = Math.floor(Math.max(0, seconds || 0));
@@ -84,6 +74,7 @@ export default function NowPlayingScreen() {
       </View>
 
       <PlaybackControls />
+      <PlaybackModes />
     </View>
   );
 }

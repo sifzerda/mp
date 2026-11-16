@@ -1,12 +1,6 @@
 // src/components/SongItem.jsx
 
-import {
-  View,
-  Text,
-  Pressable,
-  StyleSheet,
-} from "react-native";
-
+import { View, Text, Pressable, StyleSheet } from "react-native";
 import colors from "../theme/colors";
 
 function formatDuration(seconds) {

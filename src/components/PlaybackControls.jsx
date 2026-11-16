@@ -1,23 +1,9 @@
 // src/components/PlaybackControls.jsx
 
 import { useState } from "react";
-import {
-  View,
-  Text,
-  Pressable,
-  StyleSheet,
-} from "react-native";
-
-import {
-  usePlaybackState,
-  State,
-} from "react-native-track-player";
-
-import {
-  togglePlayback,
-  nextTrack,
-  previousTrack,
-} from "../services/audioService";
+import { View, Text, Pressable, StyleSheet } from "react-native";
+import { usePlaybackState, State } from "react-native-track-player";
+import { togglePlayback, nextTrack, previousTrack } from "../services/audioService";
 
 export default function PlaybackControls() {
   const playback = usePlaybackState();

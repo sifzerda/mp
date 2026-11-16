@@ -1,12 +1,6 @@
 // src/services/musicLibrary.js
 
-import {
-  AssetField,
-  MediaType,
-  Query,
-  getPermissionsAsync,
-  requestPermissionsAsync,
-} from "expo-media-library";
+import { AssetField, MediaType, Query, getPermissionsAsync, requestPermissionsAsync } from "expo-media-library";
 
 const PAGE_SIZE = 200;
 
@@ -14,10 +8,7 @@ export async function requestMusicPermission() {
   let permission = await getPermissionsAsync(false, ["audio"]);
 
   if (!permission.granted) {
-    permission = await requestPermissionsAsync(
-      false,
-      ["audio"]
-    );
+    permission = await requestPermissionsAsync(false, ["audio"]);
   }
 
   return permission.granted;
@@ -63,7 +54,5 @@ export async function getLocalSongs() {
     if (assets.length < PAGE_SIZE) break;
   }
 
-  return songs.sort((a, b) =>
-    a.title.localeCompare(b.title)
-  );
+  return songs.sort((a, b) => a.title.localeCompare(b.title));
 }

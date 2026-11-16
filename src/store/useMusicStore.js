@@ -1,11 +1,7 @@
 // src/store/useMusicStore.js
 
 import { create } from "zustand";
-
-import {
-  getLocalSongs,
-  requestMusicPermission,
-} from "../services/musicLibrary";
+import { getLocalSongs, requestMusicPermission } from "../services/musicLibrary";
 
 const useMusicStore = create((set, get) => ({
   songs: [],
@@ -17,7 +13,6 @@ const useMusicStore = create((set, get) => ({
   error: null,
 
   setSearch: (search) => set({ search }),
-
   setActiveTab: (activeTab) => set({ activeTab }),
 
   loadSongs: async () => {

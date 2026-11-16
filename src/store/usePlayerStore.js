@@ -9,10 +9,7 @@ const usePlayerStore = create((set) => ({
 
   openPlayer: () => set({ showNowPlaying: true }),
   closePlayer: () => set({ showNowPlaying: false }),
-
-  toggleShuffle: () =>
-    set((state) => ({ shuffle: !state.shuffle })),
-
+  toggleShuffle: () => set((state) => ({ shuffle: !state.shuffle })),
   setRepeat: (repeat) => set({ repeat }),
 }));
 
