@@ -9,48 +9,136 @@ import LibraryTabs from "../components/LibraryTabs";
 import colors from "../theme/colors";
 import { playSong } from "../services/audioService";
 
+const UNKNOWN_ARTIST = "Unknown artist";
+const UNKNOWN_ALBUM = "Unknown album";
+
+function getArtist(song) {
+  return String(song.artist || UNKNOWN_ARTIST).trim();
+}
+
+function getAlbum(song) {
+  return String(song.album || UNKNOWN_ALBUM).trim();
+}
+
+function groupSongs(songs, type) {
+  const groups = new Map();
+
+  for (const song of songs) {
+    const artist = getArtist(song);
+    const album = getAlbum(song);
+
+    const name = type === "Artists" ? artist : album;
+
+    // Include artist in album identity to avoid
+    // merging albums with the same title.
+    const key =
+      type === "Artists"
+        ? artist
+        : `${artist}\u0000${album}`;
+
+    if (!groups.has(key)) {
+      groups.set(key, {
+        id: key,
+        name,
+        artist: type === "Albums" ? artist : null,
+        songs: [],
+      });
+    }
+
+    groups.get(key).songs.push(song);
+  }
+
+  return Array.from(groups.values()).sort((a, b) =>
+    a.name.localeCompare(b.name)
+  );
+}
+
 export default function LibraryScreen() {
   const songs = useMusicStore((s) => s.songs);
   const search = useMusicStore((s) => s.search);
   const activeTab = useMusicStore((s) => s.activeTab);
+  const selectedCollection = useMusicStore(
+    (s) => s.selectedCollection
+  );
+
   const loading = useMusicStore((s) => s.loading);
   const error = useMusicStore((s) => s.error);
   const permissionGranted = useMusicStore(
     (s) => s.permissionGranted
   );
+
   const loadSongs = useMusicStore((s) => s.loadSongs);
+  const selectCollection = useMusicStore(
+    (s) => s.selectCollection
+  );
+  const clearCollection = useMusicStore(
+    (s) => s.clearCollection
+  );
 
   useEffect(() => {
     loadSongs();
   }, [loadSongs]);
 
-  const filteredSongs = useMemo(() => {
-    const query = search.trim().toLowerCase();
+  const query = search.trim().toLowerCase();
 
-    if (!query) return songs;
+  const collections = useMemo(() => {
+    if (activeTab === "Songs") return [];
 
-    return songs.filter((song) =>
-      [song.title, song.artist, song.album].some(
+    return groupSongs(songs, activeTab);
+  }, [songs, activeTab]);
+
+  const collectionSongs = useMemo(() => {
+    if (!selectedCollection) return songs;
+
+    if (selectedCollection.type === "Artists") {
+      return songs.filter(
+        (song) =>
+          getArtist(song) === selectedCollection.name
+      );
+    }
+
+    return songs.filter(
+      (song) =>
+        getAlbum(song) === selectedCollection.name &&
+        getArtist(song) === selectedCollection.artist
+    );
+  }, [songs, selectedCollection]);
+
+  const items = useMemo(() => {
+    if (activeTab === "Songs" || selectedCollection) {
+      return collectionSongs.filter((song) =>
+        [song.title, song.artist, song.album].some(
+          (value) =>
+            String(value ?? "")
+              .toLowerCase()
+              .includes(query)
+        )
+      );
+    }
+
+    return collections.filter((collection) =>
+      [collection.name, collection.artist].some(
         (value) =>
           String(value ?? "")
             .toLowerCase()
             .includes(query)
       )
     );
-  }, [songs, search]);
+  }, [
+    activeTab,
+    selectedCollection,
+    collectionSongs,
+    collections,
+    query,
+  ]);
 
-  const items = useMemo(() => {
-    if (activeTab === "Songs") {
-      return filteredSongs;
-    }
-
-    return [];
-  }, [activeTab, filteredSongs]);
+  const showingSongs =
+    activeTab === "Songs" || !!selectedCollection;
 
   const handlePlaySong = useCallback(
     async (song) => {
       try {
-        await playSong(song, songs);
+        await playSong(song, collectionSongs);
       } catch (err) {
         console.error("Playback error:", err);
 
@@ -60,17 +148,62 @@ export default function LibraryScreen() {
         );
       }
     },
-    [songs]
+    [collectionSongs]
   );
 
-  const renderSong = useCallback(
-    ({ item }) => (
-      <SongItem
-        song={item}
-        onPress={() => handlePlaySong(item)}
-      />
-    ),
-    [handlePlaySong]
+  const renderItem = useCallback(
+    ({ item }) => {
+      if (showingSongs) {
+        return (
+          <SongItem
+            song={item}
+            onPress={() => handlePlaySong(item)}
+          />
+        );
+      }
+
+      return (
+        <Pressable
+          style={styles.collection}
+          onPress={() =>
+            selectCollection(
+              activeTab,
+              item.name,
+              item.artist
+            )
+          }
+        >
+          <View style={styles.collectionIcon}>
+            <Text style={styles.collectionSymbol}>
+              {activeTab === "Artists" ? "♫" : "▣"}
+            </Text>
+          </View>
+
+          <View style={styles.collectionDetails}>
+            <Text
+              style={styles.collectionName}
+              numberOfLines={1}
+            >
+              {item.name}
+            </Text>
+
+            <Text style={styles.collectionSubtitle}>
+              {activeTab === "Albums"
+                ? `${item.artist} · ${item.songs.length} songs`
+                : `${item.songs.length} songs`}
+            </Text>
+          </View>
+
+          <Text style={styles.chevron}>›</Text>
+        </Pressable>
+      );
+    },
+    [
+      showingSongs,
+      handlePlaySong,
+      selectCollection,
+      activeTab,
+    ]
   );
 
   const emptyMessage =
@@ -78,19 +211,17 @@ export default function LibraryScreen() {
       ? "Music permission is required."
       : error
         ? error
-        : activeTab !== "Songs"
-          ? "Artist and album browsing is coming next."
-          : search
-            ? "No matching songs."
-            : "No music found on your device.";
+        : query
+          ? "No matching results."
+          : songs.length === 0
+            ? "No music found on your device."
+            : "No songs found.";
 
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <View>
-          <Text style={styles.heading}>
-            My Music
-          </Text>
+        <View style={styles.headerText}>
+          <Text style={styles.heading}>My Music</Text>
 
           <Text style={styles.subtitle}>
             {songs.length} songs on your device
@@ -108,8 +239,28 @@ export default function LibraryScreen() {
         </Pressable>
       </View>
 
-      <SearchBar />
       <LibraryTabs />
+
+      {selectedCollection && (
+        <View style={styles.collectionHeader}>
+          <Pressable onPress={clearCollection}>
+            <Text style={styles.back}>‹ Back</Text>
+          </Pressable>
+
+          <Text
+            style={styles.collectionTitle}
+            numberOfLines={2}
+          >
+            {selectedCollection.name}
+          </Text>
+
+          <Text style={styles.subtitle}>
+            {collectionSongs.length} songs
+          </Text>
+        </View>
+      )}
+
+      <SearchBar />
 
       {loading && songs.length === 0 ? (
         <View style={styles.center}>
@@ -126,7 +277,7 @@ export default function LibraryScreen() {
         <FlatList
           data={items}
           keyExtractor={(item) => String(item.id)}
-          renderItem={renderSong}
+          renderItem={renderItem}
           showsVerticalScrollIndicator={false}
           refreshing={loading}
           onRefresh={loadSongs}
@@ -170,6 +321,9 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     marginBottom: 24,
   },
+  headerText: {
+    flex: 1,
+  },
   heading: {
     color: colors.text,
     fontSize: 30,
@@ -189,6 +343,58 @@ const styles = StyleSheet.create({
   refreshText: {
     color: colors.primary,
     fontWeight: "600",
+  },
+  collectionHeader: {
+    marginBottom: 16,
+  },
+  back: {
+    color: colors.primary,
+    fontSize: 16,
+    marginBottom: 10,
+  },
+  collectionTitle: {
+    color: colors.text,
+    fontSize: 24,
+    fontWeight: "700",
+  },
+  collection: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: colors.surface,
+    borderRadius: 14,
+    padding: 14,
+    marginBottom: 10,
+  },
+  collectionIcon: {
+    width: 52,
+    height: 52,
+    borderRadius: 12,
+    backgroundColor: colors.background,
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 14,
+  },
+  collectionSymbol: {
+    color: colors.primary,
+    fontSize: 26,
+  },
+  collectionDetails: {
+    flex: 1,
+  },
+  collectionName: {
+    color: colors.text,
+    fontSize: 16,
+    fontWeight: "700",
+  },
+  collectionSubtitle: {
+    color: colors.muted,
+    fontSize: 12,
+    marginTop: 5,
+  },
+  chevron: {
+    color: colors.muted,
+    fontSize: 28,
+    marginLeft: 10,
   },
   center: {
     flex: 1,
