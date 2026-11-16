@@ -5,6 +5,7 @@ import Slider from "@react-native-community/slider";
 import TrackPlayer, { useActiveTrack, useProgress } from "react-native-track-player";
 import PlaybackControls from "../components/PlaybackControls";
 import usePlayerStore from "../store/usePlayerStore";
+import useFavoritesStore from "../store/useFavoritesStore";
 import PlaybackModes from "../components/PlaybackModes";
 
 function formatTime(seconds) {
@@ -20,6 +21,9 @@ export default function NowPlayingScreen() {
   const { position, duration } = useProgress(500);
 
   const closePlayer = usePlayerStore((s) => s.closePlayer);
+  const favorites = useFavoritesStore((s) => s.favorites);
+  const toggleFavorite = useFavoritesStore((s) => s.toggleFavorite);
+  const isFavorite = track ? favorites.includes(String(track.id)) : false;
 
   if (!track) {
     return (
@@ -42,9 +46,27 @@ export default function NowPlayingScreen() {
         <Text style={styles.artworkIcon}>♫</Text>
       </View>
 
-      <Text style={styles.title} numberOfLines={2}>
-        {track.title}
-      </Text>
+      <View style={styles.titleRow}>
+        <Text style={styles.title} numberOfLines={2}>
+          {track.title}
+        </Text>
+
+        <Pressable
+          onPress={() => toggleFavorite(track.id)}
+          accessibilityRole="button"
+          accessibilityLabel={
+            isFavorite ? "Remove from favorites" : "Add to favorites"
+          }
+          style={styles.favoriteButton}
+        >
+          <Text style={[
+            styles.heart,
+            isFavorite && styles.activeHeart,
+          ]}>
+            {isFavorite ? "♥" : "♡"}
+          </Text>
+        </Pressable>
+      </View>
 
       <Text style={styles.artist}>
         {track.artist || "Unknown artist"}
@@ -131,5 +153,22 @@ const styles = StyleSheet.create({
   empty: {
     color: "#ffffff",
     textAlign: "center",
+  },
+
+  titleRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 12,
+  },
+  favoriteButton: {
+    padding: 10,
+  },
+  heart: {
+    color: "#ffffff",
+    fontSize: 32,
+  },
+  activeHeart: {
+    color: "#ff477e",
   },
 });

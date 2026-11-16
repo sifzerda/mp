@@ -2,6 +2,7 @@
 
 import { View, Text, Pressable, StyleSheet } from "react-native";
 import colors from "../theme/colors";
+import useFavoritesStore from "../store/useFavoritesStore";
 
 function formatDuration(seconds) {
   const total = Math.max(0, Math.floor(Number(seconds) || 0));

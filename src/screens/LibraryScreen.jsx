@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useCallback } from "react";
 import { View, Text, FlatList, Pressable, ActivityIndicator, Alert, StyleSheet } from "react-native";
 import useMusicStore from "../store/useMusicStore";
+import useFavoritesStore from "../store/useFavoritesStore";
 import SongItem from "../components/SongItem";
 import SearchBar from "../components/SearchBar";
 import LibraryTabs from "../components/LibraryTabs";
@@ -26,15 +27,9 @@ function groupSongs(songs, type) {
   for (const song of songs) {
     const artist = getArtist(song);
     const album = getAlbum(song);
-
     const name = type === "Artists" ? artist : album;
-
-    // Include artist in album identity to avoid
-    // merging albums with the same title.
-    const key =
-      type === "Artists"
-        ? artist
-        : `${artist}\u0000${album}`;
+    // Include artist in album identity to avoid merging albums with the same title.
+    const key = type === "Artists" ? artist : `${artist}\u0000${album}`;
 
     if (!groups.has(key)) {
       groups.set(key, {
@@ -57,37 +52,39 @@ export default function LibraryScreen() {
   const songs = useMusicStore((s) => s.songs);
   const search = useMusicStore((s) => s.search);
   const activeTab = useMusicStore((s) => s.activeTab);
-  const selectedCollection = useMusicStore(
-    (s) => s.selectedCollection
-  );
-
+  const selectedCollection = useMusicStore((s) => s.selectedCollection);
   const loading = useMusicStore((s) => s.loading);
   const error = useMusicStore((s) => s.error);
-  const permissionGranted = useMusicStore(
-    (s) => s.permissionGranted
-  );
-
+  const permissionGranted = useMusicStore((s) => s.permissionGranted);
   const loadSongs = useMusicStore((s) => s.loadSongs);
-  const selectCollection = useMusicStore(
-    (s) => s.selectCollection
-  );
-  const clearCollection = useMusicStore(
-    (s) => s.clearCollection
-  );
+  const selectCollection = useMusicStore((s) => s.selectCollection);
+  const clearCollection = useMusicStore((s) => s.clearCollection);
+  const loadFavorites = useFavoritesStore((state) => state.loadFavorites);
+  const favorites = useFavoritesStore((s) => s.favorites);
 
   useEffect(() => {
     loadSongs();
-  }, [loadSongs]);
+    loadFavorites();
+  }, [loadSongs, loadFavorites]);
 
   const query = search.trim().toLowerCase();
+  const showingSongs = activeTab === "Songs" || activeTab === "Favorites" || !!selectedCollection;
 
   const collections = useMemo(() => {
-    if (activeTab === "Songs") return [];
+    if (activeTab === "Artists" || activeTab === "Albums") {
+      return groupSongs(songs, activeTab);
+    }
 
-    return groupSongs(songs, activeTab);
+    return [];
   }, [songs, activeTab]);
 
   const collectionSongs = useMemo(() => {
+    if (activeTab === "Favorites") {
+      return songs.filter((song) =>
+        favorites.includes(String(song.id))
+      );
+    }
+
     if (!selectedCollection) return songs;
 
     if (selectedCollection.type === "Artists") {
@@ -102,38 +99,25 @@ export default function LibraryScreen() {
         getAlbum(song) === selectedCollection.name &&
         getArtist(song) === selectedCollection.artist
     );
-  }, [songs, selectedCollection]);
+  }, [songs, activeTab, selectedCollection, favorites]);
 
   const items = useMemo(() => {
-    if (activeTab === "Songs" || selectedCollection) {
+    if (showingSongs) {
       return collectionSongs.filter((song) =>
-        [song.title, song.artist, song.album].some(
-          (value) =>
-            String(value ?? "")
-              .toLowerCase()
-              .includes(query)
+        [song.title, song.artist, song.album].some((value) => String(value ?? "")
+          .toLowerCase()
+          .includes(query)
         )
       );
     }
 
     return collections.filter((collection) =>
-      [collection.name, collection.artist].some(
-        (value) =>
-          String(value ?? "")
-            .toLowerCase()
-            .includes(query)
+      [collection.name, collection.artist].some((value) => String(value ?? "")
+        .toLowerCase()
+        .includes(query)
       )
     );
-  }, [
-    activeTab,
-    selectedCollection,
-    collectionSongs,
-    collections,
-    query,
-  ]);
-
-  const showingSongs =
-    activeTab === "Songs" || !!selectedCollection;
+  }, [showingSongs, collectionSongs, collections, query]);
 
   const handlePlaySong = useCallback(
     async (song) => {
@@ -155,10 +139,7 @@ export default function LibraryScreen() {
     ({ item }) => {
       if (showingSongs) {
         return (
-          <SongItem
-            song={item}
-            onPress={() => handlePlaySong(item)}
-          />
+          <SongItem song={item} onPress={() => handlePlaySong(item)} />
         );
       }
 

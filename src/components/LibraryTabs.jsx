@@ -4,7 +4,7 @@ import { ScrollView, Pressable, Text, StyleSheet } from "react-native";
 import useMusicStore from "../store/useMusicStore";
 import colors from "../theme/colors";
 
-const TABS = ["Songs", "Artists", "Albums"];
+const TABS = ["Songs", "Artists", "Albums", "Favorites"];
 
 export default function LibraryTabs() {
   const activeTab = useMusicStore((s) => s.activeTab);
