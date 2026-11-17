@@ -17,12 +17,12 @@ import {
   Alert,
 } from "react-native";
 
+import { Check } from "lucide-react-native";
+
 import usePlaylistStore from "../store/usePlaylistStore";
 import useThemedStyles from "../theme/useThemedStyles";
 
-import {
-  playlistContainsSong,
-} from "../utils/musicUtils";
+import { playlistContainsSong } from "../utils/musicUtils";
 
 const keyExtractor = (item) => item.id;
 
@@ -32,12 +32,9 @@ const PlaylistOption = memo(function PlaylistOption({
   busy,
   onSelect,
 }) {
-  const { styles } = useThemedStyles(createStyles);
+  const { colors, styles } = useThemedStyles(createStyles);
 
-  const added = playlistContainsSong(
-    playlist,
-    songId
-  );
+  const added = playlistContainsSong(playlist, songId);
 
   return (
     <Pressable
@@ -60,7 +57,14 @@ const PlaylistOption = memo(function PlaylistOption({
       </View>
 
       {added && (
-        <Text style={styles.added}>✓ Added</Text>
+        <View style={styles.addedRow}>
+          <Check
+            size={16}
+            color={colors.success}
+          />
+
+          <Text style={styles.added}>Added</Text>
+        </View>
       )}
     </Pressable>
   );
@@ -184,6 +188,8 @@ export default memo(function PlaylistPicker({
   );
 });
 
+/* -------------------- STYLES -------------------- */
+
 const createStyles = (colors) =>
   StyleSheet.create({
     overlay: {
@@ -228,6 +234,12 @@ const createStyles = (colors) =>
       color: colors.muted,
       fontSize: 12,
       marginTop: 4,
+    },
+
+    addedRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 5,
     },
 
     added: {

@@ -1,7 +1,20 @@
 // src/screens/QueueScreen.jsx
 
 import { memo, useCallback } from "react";
-import { View, Text, Pressable, StyleSheet, ActivityIndicator } from "react-native";
+import {
+  View,
+  Text,
+  Pressable,
+  StyleSheet,
+  ActivityIndicator,
+} from "react-native";
+import {
+  X,
+  GripVertical,
+  Music,
+  ChevronLeft,
+} from "lucide-react-native";
+
 import DraggableFlatList, { ScaleDecorator } from "react-native-draggable-flatlist";
 
 import AlbumArtwork from "../components/AlbumArtwork";
@@ -61,7 +74,7 @@ const QueueItem = memo(function QueueItem({
   onPlay,
   onRemove,
 }) {
-  const { styles } = useThemedStyles(createStyles);
+  const { colors, styles } = useThemedStyles(createStyles);
 
   const disabled = busy || isActive;
 
@@ -106,7 +119,10 @@ const QueueItem = memo(function QueueItem({
           accessibilityRole="button"
           accessibilityLabel="Remove from queue"
         >
-          <Text style={styles.removeIcon}>✕</Text>
+          <X
+            size={20}
+            color={colors.danger}
+          />
         </Pressable>
 
         <Pressable
@@ -118,7 +134,10 @@ const QueueItem = memo(function QueueItem({
           accessibilityLabel={`Reorder ${item.title}`}
           accessibilityHint="Long press and drag"
         >
-          <Text style={styles.dragIcon}>≡</Text>
+          <GripVertical
+            size={24}
+            color={colors.muted}
+          />
         </Pressable>
       </View>
     </ScaleDecorator>
@@ -130,7 +149,7 @@ const QueueItem = memo(function QueueItem({
 const CurrentTrack = memo(function CurrentTrack({
   track,
 }) {
-  const { styles } = useThemedStyles(createStyles);
+  const { colors, styles } = useThemedStyles(createStyles);
 
   if (!track) {
     return (
@@ -147,7 +166,10 @@ const CurrentTrack = memo(function CurrentTrack({
         current
       />
 
-      <Text style={styles.playingIcon}>♫</Text>
+      <Music
+        size={24}
+        color={colors.primary}
+      />
     </View>
   );
 });
@@ -204,9 +226,19 @@ function QueueScreen({ navigation }) {
 
   return (
     <View style={styles.container}>
-      <Pressable onPress={closeQueue}>
+      <Pressable
+        onPress={closeQueue}
+        style={styles.backButton}
+        accessibilityRole="button"
+        accessibilityLabel="Back to Now Playing"
+      >
+        <ChevronLeft
+          size={22}
+          color={colors.primary}
+        />
+
         <Text style={styles.back}>
-          ‹ Now Playing
+          Now Playing
         </Text>
       </Pressable>
 
@@ -251,9 +283,16 @@ function QueueScreen({ navigation }) {
           </Text>
 
           {upcoming.length > 1 && (
-            <Text style={styles.hint}>
-              Hold and drag ≡ to reorder songs
-            </Text>
+            <View style={styles.hintRow}>
+              <GripVertical
+                size={16}
+                color={colors.muted}
+              />
+
+              <Text style={styles.hint}>
+                Hold and drag to reorder songs
+              </Text>
+            </View>
           )}
 
           <DraggableFlatList
@@ -294,10 +333,17 @@ const createStyles = (colors) =>
       paddingTop: 20,
     },
 
+    backButton: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 4,
+      alignSelf: "flex-start",
+      marginBottom: 18,
+    },
+
     back: {
       color: colors.primary,
       fontSize: 16,
-      marginBottom: 18,
     },
 
     heading: {
@@ -316,10 +362,16 @@ const createStyles = (colors) =>
       marginBottom: 12,
     },
 
+    hintRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 5,
+      marginBottom: 14,
+    },
+
     hint: {
       color: colors.muted,
       fontSize: 12,
-      marginBottom: 14,
     },
 
     currentRow: {
@@ -330,11 +382,6 @@ const createStyles = (colors) =>
       padding: 12,
       gap: 12,
       marginBottom: 20,
-    },
-
-    playingIcon: {
-      color: colors.primary,
-      fontSize: 24,
     },
 
     songRow: {
@@ -377,18 +424,10 @@ const createStyles = (colors) =>
     },
 
     actionButton: {
-      paddingHorizontal: 12,
-      paddingVertical: 10,
-    },
-
-    removeIcon: {
-      color: colors.danger,
-      fontSize: 18,
-    },
-
-    dragIcon: {
-      color: colors.muted,
-      fontSize: 26,
+      width: 44,
+      height: 44,
+      alignItems: "center",
+      justifyContent: "center",
     },
 
     center: {

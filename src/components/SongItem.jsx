@@ -14,6 +14,14 @@ import {
   Modal,
 } from "react-native";
 
+import {
+  Plus,
+  EllipsisVertical,
+  SkipForward,
+  ListPlus,
+  Trash2,
+} from "lucide-react-native";
+
 import useThemedStyles from "../theme/useThemedStyles";
 import AlbumArtwork from "./AlbumArtwork";
 
@@ -73,6 +81,7 @@ const SongInformation = memo(function SongInformation({
 
 function SongOptionsMenu({
   song,
+  colors,
   styles,
   onClose,
   onPlayNext,
@@ -101,7 +110,10 @@ function SongOptionsMenu({
           style={styles.menu}
           onPress={(event) => event.stopPropagation()}
         >
-          <Text style={styles.menuTitle} numberOfLines={2}>
+          <Text
+            style={styles.menuTitle}
+            numberOfLines={2}
+          >
             {song.title || "Unknown title"}
           </Text>
 
@@ -110,8 +122,13 @@ function SongOptionsMenu({
               style={styles.menuItem}
               onPress={() => handleAction(onPlayNext)}
             >
+              <SkipForward
+                size={22}
+                color={colors.primary}
+              />
+
               <Text style={styles.menuText}>
-                ⏭ Play Next
+                Play Next
               </Text>
             </Pressable>
           )}
@@ -121,8 +138,13 @@ function SongOptionsMenu({
               style={styles.menuItem}
               onPress={() => handleAction(onAddToQueue)}
             >
+              <ListPlus
+                size={22}
+                color={colors.primary}
+              />
+
               <Text style={styles.menuText}>
-                ☷ Add to Queue
+                Add to Queue
               </Text>
             </Pressable>
           )}
@@ -151,7 +173,7 @@ function SongItem({
   onPlayNext,
   onAddToQueue,
 }) {
-  const { styles } = useThemedStyles(createStyles);
+  const { colors, styles } = useThemedStyles(createStyles);
 
   const [menuVisible, setMenuVisible] = useState(false);
 
@@ -178,20 +200,24 @@ function SongItem({
           accessibilityRole="button"
           accessibilityLabel="Add to playlist"
         >
-          <Text style={styles.add}>＋</Text>
+          <Plus
+            size={26}
+            color={colors.primary}
+          />
         </Pressable>
       )}
 
       {onRemoveFromPlaylist && (
         <Pressable
           onPress={onRemoveFromPlaylist}
-          style={styles.removeButton}
+          style={styles.actionButton}
           accessibilityRole="button"
           accessibilityLabel="Remove from playlist"
         >
-          <Text style={styles.remove}>
-            Remove
-          </Text>
+          <Trash2
+            size={20}
+            color={colors.danger}
+          />
         </Pressable>
       )}
 
@@ -202,13 +228,17 @@ function SongItem({
           accessibilityRole="button"
           accessibilityLabel="Song options"
         >
-          <Text style={styles.more}>⋮</Text>
+          <EllipsisVertical
+            size={24}
+            color={colors.muted}
+          />
         </Pressable>
       )}
 
       {menuVisible && (
         <SongOptionsMenu
           song={song}
+          colors={colors}
           styles={styles}
           onClose={closeMenu}
           onPlayNext={onPlayNext}
@@ -275,27 +305,6 @@ const createStyles = (colors) =>
       justifyContent: "center",
     },
 
-    add: {
-      color: colors.primary,
-      fontSize: 29,
-    },
-
-    more: {
-      color: colors.muted,
-      fontSize: 28,
-      fontWeight: "700",
-    },
-
-    removeButton: {
-      paddingHorizontal: 5,
-      paddingVertical: 12,
-    },
-
-    remove: {
-      color: colors.danger,
-      fontSize: 12,
-    },
-
     overlay: {
       flex: 1,
       backgroundColor: colors.overlay,
@@ -317,6 +326,9 @@ const createStyles = (colors) =>
     },
 
     menuItem: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 12,
       paddingVertical: 16,
       borderBottomWidth: 1,
       borderBottomColor: colors.border,

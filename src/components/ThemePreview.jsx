@@ -1,16 +1,27 @@
 // src/components/ThemePreview.jsx
 
 import { View, Text, StyleSheet } from "react-native";
+
+import {
+  Music,
+  Play,
+  SkipBack,
+  SkipForward,
+} from "lucide-react-native";
+
 import useThemedStyles from "../theme/useThemedStyles";
 
 export default function ThemePreview() {
-  const { styles } = useThemedStyles(createStyles);
+  const { colors, styles } = useThemedStyles(createStyles);
 
   return (
     <View style={styles.container}>
       <View style={styles.songRow}>
         <View style={styles.artwork}>
-          <Text style={styles.artworkIcon}>♫</Text>
+          <Music
+            size={30}
+            color={colors.primary}
+          />
         </View>
 
         <View style={styles.songInfo}>
@@ -29,17 +40,31 @@ export default function ThemePreview() {
       </View>
 
       <View style={styles.controls}>
-        <Text style={styles.controlIcon}>⏮</Text>
+        <SkipBack
+          size={26}
+          color={colors.text}
+          fill={colors.text}
+        />
 
         <View style={styles.playButton}>
-          <Text style={styles.playIcon}>▶</Text>
+          <Play
+            size={28}
+            color={colors.onPrimary}
+            fill={colors.onPrimary}
+          />
         </View>
 
-        <Text style={styles.controlIcon}>⏭</Text>
+        <SkipForward
+          size={26}
+          color={colors.text}
+          fill={colors.text}
+        />
       </View>
     </View>
   );
 }
+
+/* -------------------- STYLES -------------------- */
 
 const createStyles = (colors) =>
   StyleSheet.create({
@@ -65,11 +90,6 @@ const createStyles = (colors) =>
       justifyContent: "center",
     },
 
-    artworkIcon: {
-      color: colors.primary,
-      fontSize: 30,
-    },
-
     songInfo: {
       flex: 1,
       gap: 4,
@@ -84,11 +104,6 @@ const createStyles = (colors) =>
     artist: {
       color: colors.muted,
       fontSize: 14,
-    },
-
-    heart: {
-      color: colors.primary,
-      fontSize: 25,
     },
 
     progress: {
@@ -128,15 +143,5 @@ const createStyles = (colors) =>
       borderRadius: 30,
       alignItems: "center",
       justifyContent: "center",
-    },
-
-    controlIcon: {
-      color: colors.text,
-      fontSize: 26,
-    },
-
-    playIcon: {
-      color: colors.onPrimary,
-      fontSize: 26,
     },
   });

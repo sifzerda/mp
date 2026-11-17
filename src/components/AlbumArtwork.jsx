@@ -9,11 +9,11 @@ import {
 
 import {
   View,
-  Text,
   StyleSheet,
 } from "react-native";
 
 import { Image } from "expo-image";
+import { Music } from "lucide-react-native";
 
 import {
   getSongArtwork,
@@ -95,7 +95,7 @@ function AlbumArtwork({
   size = 52,
   borderRadius = 12,
 }) {
-  const { styles } = useThemedStyles(createStyles);
+  const { colors, styles } = useThemedStyles(createStyles);
 
   const {
     artwork,
@@ -126,14 +126,11 @@ function AlbumArtwork({
           onError={handleError}
         />
       ) : (
-        <Text
-          style={[
-            styles.placeholder,
-            { fontSize: size * 0.5 },
-          ]}
-        >
-          ♫
-        </Text>
+        <Music
+          size={size * 0.5}
+          color={colors.primary}
+          strokeWidth={2}
+        />
       )}
     </View>
   );
@@ -155,9 +152,5 @@ const createStyles = (colors) =>
     image: {
       width: "100%",
       height: "100%",
-    },
-
-    placeholder: {
-      color: colors.primary,
     },
   });

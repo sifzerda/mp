@@ -11,7 +11,15 @@ import {
   Switch,
 } from "react-native";
 
-import { Headphones } from "lucide-react-native";
+import {
+  Headphones,
+  Sun,
+  Moon,
+  Smartphone,
+  ChevronLeft,
+  Check,
+  RotateCcw,
+} from "lucide-react-native";
 
 import useSettingsStore from "../store/useSettingsStore";
 import useTheme from "../theme/useTheme";
@@ -19,21 +27,36 @@ import { ACCENT_PRESETS } from "../theme/colors";
 import ThemePreview from "../components/ThemePreview";
 
 const THEMES = [
-  { value: "light", label: "Light", icon: "☀" },
-  { value: "dark", label: "Dark", icon: "☾" },
-  { value: "system", label: "System", icon: "◐" },
+  { value: "light", label: "Light", icon: Sun },
+  { value: "dark", label: "Dark", icon: Moon },
+  { value: "system", label: "System", icon: Smartphone },
 ];
 
 export default function SettingsScreen({ navigation }) {
   const theme = useSettingsStore((s) => s.theme);
   const accent = useSettingsStore((s) => s.accent);
-  const pauseOnDisconnect = useSettingsStore((s) => s.pauseOnDisconnect);
+
+  const pauseOnDisconnect = useSettingsStore(
+    (s) => s.pauseOnDisconnect
+  );
+
   const setTheme = useSettingsStore((s) => s.setTheme);
   const setAccent = useSettingsStore((s) => s.setAccent);
-  const setPauseOnDisconnect = useSettingsStore((s) => s.setPauseOnDisconnect);
-  const resetSettings = useSettingsStore((s) => s.resetSettings);
+
+  const setPauseOnDisconnect = useSettingsStore(
+    (s) => s.setPauseOnDisconnect
+  );
+
+  const resetSettings = useSettingsStore(
+    (s) => s.resetSettings
+  );
+
   const colors = useTheme();
-  const styles = useMemo(() => createStyles(colors), [colors]);
+
+  const styles = useMemo(
+    () => createStyles(colors),
+    [colors]
+  );
 
   return (
     <ScrollView
@@ -41,8 +64,18 @@ export default function SettingsScreen({ navigation }) {
       contentContainerStyle={styles.content}
       showsVerticalScrollIndicator={false}
     >
-      <Pressable onPress={() => navigation.goBack()}>
-        <Text style={styles.back}>‹ Library</Text>
+      <Pressable
+        onPress={() => navigation.goBack()}
+        style={styles.backButton}
+        accessibilityRole="button"
+        accessibilityLabel="Back to Library"
+      >
+        <ChevronLeft
+          size={22}
+          color={colors.primary}
+        />
+
+        <Text style={styles.back}>Library</Text>
       </Pressable>
 
       <Text style={styles.heading}>Settings</Text>
@@ -59,6 +92,7 @@ export default function SettingsScreen({ navigation }) {
         <View style={styles.themeRow}>
           {THEMES.map((item) => {
             const selected = theme === item.value;
+            const Icon = item.icon;
 
             return (
               <Pressable
@@ -71,14 +105,14 @@ export default function SettingsScreen({ navigation }) {
                   selected && styles.selectedTheme,
                 ]}
               >
-                <Text
-                  style={[
-                    styles.themeIcon,
-                    selected && styles.selectedText,
-                  ]}
-                >
-                  {item.icon}
-                </Text>
+                <Icon
+                  size={30}
+                  color={
+                    selected
+                      ? colors.primary
+                      : colors.muted
+                  }
+                />
 
                 <Text style={styles.optionLabel}>
                   {item.label}
@@ -115,7 +149,11 @@ export default function SettingsScreen({ navigation }) {
                   ]}
                 >
                   {selected && (
-                    <Text style={styles.check}>✓</Text>
+                    <Check
+                      size={24}
+                      color={colors.onPrimary}
+                      strokeWidth={3}
+                    />
                   )}
                 </View>
 
@@ -180,7 +218,13 @@ export default function SettingsScreen({ navigation }) {
       <Pressable
         style={styles.resetButton}
         onPress={resetSettings}
+        accessibilityRole="button"
       >
+        <RotateCcw
+          size={18}
+          color={colors.primary}
+        />
+
         <Text style={styles.resetText}>
           Reset to defaults
         </Text>
@@ -206,6 +250,13 @@ const createStyles = (colors) =>
       padding: 20,
       paddingBottom: 40,
       gap: 16,
+    },
+
+    backButton: {
+      flexDirection: "row",
+      alignItems: "center",
+      alignSelf: "flex-start",
+      gap: 4,
     },
 
     back: {
@@ -263,15 +314,6 @@ const createStyles = (colors) =>
       backgroundColor: colors.accentSoft,
     },
 
-    themeIcon: {
-      color: colors.muted,
-      fontSize: 32,
-    },
-
-    selectedText: {
-      color: colors.primary,
-    },
-
     optionLabel: {
       color: colors.text,
       fontSize: 12,
@@ -309,12 +351,6 @@ const createStyles = (colors) =>
       borderColor: colors.text,
     },
 
-    check: {
-      color: colors.onPrimary,
-      fontSize: 24,
-      fontWeight: "bold",
-    },
-
     settingRow: {
       flexDirection: "row",
       alignItems: "center",
@@ -348,11 +384,14 @@ const createStyles = (colors) =>
     },
 
     resetButton: {
+      flexDirection: "row",
+      justifyContent: "center",
+      alignItems: "center",
+      gap: 8,
       backgroundColor: colors.surface,
       borderColor: colors.border,
       borderWidth: 1,
       borderRadius: 12,
-      alignItems: "center",
       padding: 16,
       marginTop: 12,
     },

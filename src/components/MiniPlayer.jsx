@@ -1,4 +1,4 @@
-// src/components/MiniPlayer.jsx 
+// src/components/MiniPlayer.jsx
 
 import { memo } from "react";
 
@@ -10,6 +10,13 @@ import {
 } from "react-native";
 
 import {
+  Play,
+  Pause,
+  SkipBack,
+  SkipForward,
+} from "lucide-react-native";
+
+import {
   useActiveTrack,
   usePlaybackState,
   State,
@@ -17,6 +24,7 @@ import {
 
 import {
   togglePlayback,
+  previousTrack,
   nextTrack,
 } from "../services/audioService";
 
@@ -27,42 +35,81 @@ import useCurrentSong from "../hooks/useCurrentSong";
 import usePlaybackAction from "../hooks/usePlaybackAction";
 import useThemedStyles from "../theme/useThemedStyles";
 
-const MiniPlayerControls = memo(
-  function MiniPlayerControls() {
-    const { styles } = useThemedStyles(createStyles);
+/* -------------------- CONTROL BUTTON -------------------- */
 
-    const { state } = usePlaybackState();
-    const { busy, runAction } = usePlaybackAction();
+function ControlButton({
+  icon: Icon,
+  size = 23,
+  label,
+  onPress,
+  disabled,
+  colors,
+  styles,
+}) {
+  return (
+    <Pressable
+      onPress={onPress}
+      disabled={disabled}
+      style={({ pressed }) => [
+        styles.button,
+        (pressed || disabled) && styles.dimmed,
+      ]}
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      accessibilityState={{ disabled }}
+    >
+      <Icon
+        size={size}
+        color={colors.primary}
+        fill={colors.primary}
+      />
+    </Pressable>
+  );
+}
 
-    const isPlaying = state === State.Playing;
+/* -------------------- PLAYBACK CONTROLS -------------------- */
 
-    return (
-      <>
-        <Pressable
-          onPress={() => runAction(togglePlayback)}
-          disabled={busy}
-          style={styles.button}
-          accessibilityRole="button"
-          accessibilityLabel={isPlaying ? "Pause" : "Play"}
-        >
-          <Text style={styles.icon}>
-            {isPlaying ? "⏸" : "▶"}
-          </Text>
-        </Pressable>
+const MiniPlayerControls = memo(function MiniPlayerControls() {
+  const { colors, styles } = useThemedStyles(createStyles);
+  const { state } = usePlaybackState();
+  const { busy, runAction } = usePlaybackAction();
 
-        <Pressable
-          onPress={() => runAction(nextTrack)}
-          disabled={busy}
-          style={styles.button}
-          accessibilityRole="button"
-          accessibilityLabel="Next track"
-        >
-          <Text style={styles.icon}>⏭</Text>
-        </Pressable>
-      </>
-    );
-  }
-);
+  const isPlaying = state === State.Playing;
+
+  return (
+    <View style={styles.controls}>
+      <ControlButton
+        icon={SkipBack}
+        label="Previous track"
+        onPress={() => runAction(previousTrack)}
+        disabled={busy}
+        colors={colors}
+        styles={styles}
+      />
+
+      <ControlButton
+        icon={isPlaying ? Pause : Play}
+        size={27}
+        label={isPlaying ? "Pause" : "Play"}
+        onPress={() => runAction(togglePlayback)}
+        disabled={busy}
+        colors={colors}
+        styles={styles}
+      />
+
+      <ControlButton
+        icon={SkipForward}
+        label="Next track"
+        onPress={() => runAction(nextTrack)}
+        disabled={busy}
+        colors={colors}
+        styles={styles}
+      />
+    </View>
+  );
+});
+
+/* -------------------- MINI PLAYER -------------------- */
 
 function MiniPlayer({
   onOpenPlayer,
@@ -117,6 +164,8 @@ function MiniPlayer({
 
 export default memo(MiniPlayer);
 
+/* -------------------- STYLES -------------------- */
+
 const createStyles = (colors) =>
   StyleSheet.create({
     container: {
@@ -135,14 +184,16 @@ const createStyles = (colors) =>
 
     details: {
       flex: 1,
+      minWidth: 0,
       flexDirection: "row",
       alignItems: "center",
-      gap: 12,
-      marginRight: 8,
+      gap: 10,
+      marginRight: 6,
     },
 
     songInfo: {
       flex: 1,
+      minWidth: 0,
       justifyContent: "center",
     },
 
@@ -158,13 +209,20 @@ const createStyles = (colors) =>
       marginTop: 3,
     },
 
-    button: {
-      paddingHorizontal: 10,
-      paddingVertical: 8,
+    controls: {
+      flexDirection: "row",
+      alignItems: "center",
+      flexShrink: 0,
     },
 
-    icon: {
-      color: colors.primary,
-      fontSize: 25,
+    button: {
+      width: 40,
+      height: 44,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+
+    dimmed: {
+      opacity: 0.5,
     },
   });

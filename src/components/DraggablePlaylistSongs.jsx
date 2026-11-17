@@ -5,7 +5,6 @@ import {
   useCallback,
   useRef,
 } from "react";
-
 import {
   View,
   Text,
@@ -13,13 +12,9 @@ import {
   StyleSheet,
   Alert,
 } from "react-native";
-
-import DraggableFlatList, {
-  ScaleDecorator,
-} from "react-native-draggable-flatlist";
-
+import { GripVertical } from "lucide-react-native";
+import DraggableFlatList, { ScaleDecorator } from "react-native-draggable-flatlist";
 import SongItem from "./SongItem";
-
 import usePlaylistStore from "../store/usePlaylistStore";
 import useThemedStyles from "../theme/useThemedStyles";
 
@@ -36,7 +31,7 @@ const PlaylistSongRow = memo(function PlaylistSongRow({
   onPlayNext,
   onAddToQueue,
 }) {
-  const { styles } = useThemedStyles(createStyles);
+  const { colors, styles } = useThemedStyles(createStyles);
 
   const handlePlay = useCallback(
     () => onPlaySong(song),
@@ -104,7 +99,11 @@ const PlaylistSongRow = memo(function PlaylistSongRow({
           accessibilityLabel={`Reorder ${song.title}`}
           accessibilityHint="Long press and drag to reorder"
         >
-          <Text style={styles.dragIcon}>≡</Text>
+          <GripVertical
+            size={24}
+            color={colors.primary}
+            strokeWidth={2}
+          />
         </Pressable>
       </View>
     </ScaleDecorator>
@@ -126,7 +125,7 @@ const EmptyPlaylist = memo(function EmptyPlaylist({
 
       {!searchActive && (
         <Text style={styles.emptyText}>
-          Add songs using the ＋ button in your library.
+          Add songs using the plus button in your library.
         </Text>
       )}
     </View>
@@ -249,6 +248,8 @@ function DraggablePlaylistSongs({
 
 export default memo(DraggablePlaylistSongs);
 
+/* -------------------- STYLES -------------------- */
+
 const createStyles = (colors) =>
   StyleSheet.create({
     content: {
@@ -281,12 +282,6 @@ const createStyles = (colors) =>
 
     disabledHandle: {
       opacity: 0.3,
-    },
-
-    dragIcon: {
-      color: colors.primary,
-      fontSize: 30,
-      fontWeight: "700",
     },
 
     emptyContainer: {
