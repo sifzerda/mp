@@ -3,13 +3,14 @@
 import { useState } from "react";
 import { View, Text, TextInput, Pressable, FlatList, Alert, StyleSheet } from "react-native";
 import usePlaylistStore from "../store/usePlaylistStore";
+import useThemedStyles from "../theme/useThemedStyles";
 
 export default function PlaylistManager({ onSelect }) {
     const playlists = usePlaylistStore((s) => s.playlists);
     const createPlaylist = usePlaylistStore((s) => s.createPlaylist);
     const renamePlaylist = usePlaylistStore((s) => s.renamePlaylist);
     const deletePlaylist = usePlaylistStore((s) => s.deletePlaylist);
-
+    const { colors, styles } = useThemedStyles(createStyles);
     const [name, setName] = useState("");
 
     const handleCreate = async () => {
@@ -68,7 +69,7 @@ export default function PlaylistManager({ onSelect }) {
                     value={name}
                     onChangeText={setName}
                     placeholder="New playlist name"
-                    placeholderTextColor="#9baec1"
+                    placeholderTextColor={colors.muted}
                     onSubmitEditing={handleCreate}
                 />
 
@@ -132,71 +133,86 @@ export default function PlaylistManager({ onSelect }) {
     );
 }
 
-const styles = StyleSheet.create({
-    container: { flex: 1 },
+const createStyles = (colors) =>
+  StyleSheet.create({
+    container: {
+      flex: 1,
+    },
+
     createRow: {
-        flexDirection: "row",
-        gap: 10,
-        marginBottom: 20,
+      flexDirection: "row",
+      gap: 10,
+      marginBottom: 20,
     },
+
     input: {
-        flex: 1,
-        minWidth: 0,
-        color: "#fff",
-        backgroundColor: "#172b40",
-        borderRadius: 10,
-        paddingHorizontal: 12,
-        paddingVertical: 10,
+      flex: 1,
+      minWidth: 0,
+      color: colors.text,
+      backgroundColor: colors.surface,
+      borderRadius: 10,
+      paddingHorizontal: 12,
+      paddingVertical: 10,
     },
+
     create: {
-        backgroundColor: "#00d9ff",
-        paddingHorizontal: 15,
-        justifyContent: "center",
-        borderRadius: 10,
+      backgroundColor: colors.primary,
+      paddingHorizontal: 15,
+      justifyContent: "center",
+      borderRadius: 10,
     },
+
     createText: {
-        color: "#08121f",
-        fontWeight: "700",
+      color: colors.onPrimary,
+      fontWeight: "700",
     },
+
     playlist: {
-        flexDirection: "row",
-        alignItems: "center",
-        gap: 12,
-        backgroundColor: "#172b40",
-        borderRadius: 12,
-        padding: 14,
-        marginBottom: 10,
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 12,
+      backgroundColor: colors.surface,
+      borderRadius: 12,
+      padding: 14,
+      marginBottom: 10,
     },
+
     playlistName: {
-        flex: 1,
+      flex: 1,
     },
+
     name: {
-        color: "#fff",
-        fontSize: 16,
-        fontWeight: "600",
+      color: colors.text,
+      fontSize: 16,
+      fontWeight: "600",
     },
+
     count: {
-        color: "#9baec1",
-        fontSize: 12,
-        marginTop: 4,
+      color: colors.muted,
+      fontSize: 12,
+      marginTop: 4,
     },
+
     action: {
-        color: "#00d9ff",
-        fontSize: 13,
+      color: colors.primary,
+      fontSize: 13,
     },
+
     delete: {
-        color: "#ff477e",
-        fontSize: 13,
+      color: colors.danger,
+      fontSize: 13,
     },
+
     editRow: {
-        flex: 1,
-        flexDirection: "row",
-        alignItems: "center",
-        gap: 8,
+      flex: 1,
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 8,
     },
+
     empty: {
-        color: "#9baec1",
-        textAlign: "center",
-        marginTop: 30,
+      color: colors.muted,
+      textAlign: "center",
+      marginTop: 30,
     },
-});
+  });

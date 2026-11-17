@@ -62,7 +62,7 @@ export default function PlaybackControls() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors) => StyleSheet.create({
   container: {
     flexDirection: "row",
     alignItems: "center",

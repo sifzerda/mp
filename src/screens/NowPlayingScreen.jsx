@@ -25,6 +25,7 @@ import QueueScreen from "./QueueScreen";
 import useMusicStore from "../store/useMusicStore";
 import usePlayerStore from "../store/usePlayerStore";
 import useFavoritesStore from "../store/useFavoritesStore";
+import useThemedStyles from "../theme/useThemedStyles";
 
 function formatTime(seconds) {
   const total = Math.floor(Math.max(0, seconds || 0));
@@ -35,7 +36,7 @@ function formatTime(seconds) {
 }
 
 export default function NowPlayingScreen() {
-  // All hooks must run before conditional returns.
+  const { colors, styles } = useThemedStyles(createStyles);
 
   const [showQueue, setShowQueue] = useState(false);
 
@@ -70,14 +71,9 @@ export default function NowPlayingScreen() {
     duration || track?.duration || 0
   );
 
-  // Conditional screen rendering.
-  // No hooks should appear below this point.
-
   if (showQueue) {
     return (
-      <QueueScreen
-        onBack={() => setShowQueue(false)}
-      />
+      <QueueScreen onBack={() => setShowQueue(false)} />
     );
   }
 
@@ -97,12 +93,11 @@ export default function NowPlayingScreen() {
 
   return (
     <View style={styles.container}>
-      {/* Return to library */}
       <Pressable onPress={closePlayer}>
         <Text style={styles.back}>‹ Library</Text>
       </Pressable>
 
-      {/* Centered album artwork */}
+      {/* Album artwork */}
       <View style={styles.artworkContainer}>
         <AlbumArtwork
           song={artworkSong}
@@ -111,7 +106,7 @@ export default function NowPlayingScreen() {
         />
       </View>
 
-      {/* Song title and favorite button */}
+      {/* Song title and favorites */}
       <View style={styles.titleRow}>
         <Text style={styles.title} numberOfLines={2}>
           {track.title || "Unknown title"}
@@ -140,7 +135,6 @@ export default function NowPlayingScreen() {
         </Pressable>
       </View>
 
-      {/* Artist */}
       <Text style={styles.artist}>
         {track.artist || "Unknown artist"}
       </Text>
@@ -151,12 +145,12 @@ export default function NowPlayingScreen() {
           minimumValue={0}
           maximumValue={Math.max(totalDuration, 1)}
           value={Math.min(
-            position,
+            Math.max(position, 0),
             Math.max(totalDuration, 1)
           )}
-          minimumTrackTintColor="#00d9ff"
-          maximumTrackTintColor="#34485b"
-          thumbTintColor="#00d9ff"
+          minimumTrackTintColor={colors.primary}
+          maximumTrackTintColor={colors.sliderTrack}
+          thumbTintColor={colors.primary}
           disabled={totalDuration <= 0}
           onSlidingComplete={(value) =>
             TrackPlayer.seekTo(value).catch(console.error)
@@ -187,7 +181,6 @@ export default function NowPlayingScreen() {
         </Text>
       </Pressable>
 
-      {/* Playback controls */}
       <PlaybackControls />
       <PlaybackModes />
       <PlaybackSpeed />
@@ -195,93 +188,94 @@ export default function NowPlayingScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#08121f",
-    padding: 24,
-    justifyContent: "center",
-  },
+const createStyles = (colors) =>
+  StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: colors.background,
+      padding: 24,
+      justifyContent: "center",
+    },
 
-  back: {
-    color: "#00d9ff",
-    fontSize: 17,
-    marginBottom: 30,
-  },
+    back: {
+      color: colors.primary,
+      fontSize: 17,
+      marginBottom: 30,
+    },
 
-  artworkContainer: {
-    width: "100%",
-    alignItems: "center",
-    justifyContent: "center",
-    marginBottom: 24,
-  },
+    artworkContainer: {
+      width: "100%",
+      alignItems: "center",
+      justifyContent: "center",
+      marginBottom: 24,
+    },
 
-  titleRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 12,
-  },
+    titleRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "center",
+      gap: 12,
+    },
 
-  title: {
-    flexShrink: 1,
-    color: "#ffffff",
-    fontSize: 26,
-    fontWeight: "bold",
-    textAlign: "center",
-  },
+    title: {
+      flexShrink: 1,
+      color: colors.text,
+      fontSize: 26,
+      fontWeight: "bold",
+      textAlign: "center",
+    },
 
-  artist: {
-    color: "#9baec1",
-    fontSize: 16,
-    textAlign: "center",
-    marginTop: 8,
-  },
+    artist: {
+      color: colors.muted,
+      fontSize: 16,
+      textAlign: "center",
+      marginTop: 8,
+    },
 
-  favoriteButton: {
-    padding: 10,
-  },
+    favoriteButton: {
+      padding: 10,
+    },
 
-  heart: {
-    color: "#ffffff",
-    fontSize: 32,
-  },
+    heart: {
+      color: colors.text,
+      fontSize: 32,
+    },
 
-  activeHeart: {
-    color: "#ff477e",
-  },
+    activeHeart: {
+      color: colors.danger,
+    },
 
-  progress: {
-    marginVertical: 35,
-  },
+    progress: {
+      marginVertical: 35,
+    },
 
-  times: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-  },
+    times: {
+      flexDirection: "row",
+      justifyContent: "space-between",
+    },
 
-  time: {
-    color: "#9baec1",
-    fontSize: 13,
-  },
+    time: {
+      color: colors.muted,
+      fontSize: 13,
+    },
 
-  queueButton: {
-    alignSelf: "center",
-    marginTop: 24,
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-    backgroundColor: "#142436",
-    borderRadius: 12,
-  },
+    queueButton: {
+      alignSelf: "center",
+      marginTop: 24,
+      paddingHorizontal: 20,
+      paddingVertical: 12,
+      backgroundColor: colors.surface,
+      borderRadius: 12,
+    },
 
-  queueButtonText: {
-    color: "#00d9ff",
-    fontSize: 15,
-    fontWeight: "700",
-  },
+    queueButtonText: {
+      color: colors.primary,
+      fontSize: 15,
+      fontWeight: "700",
+    },
 
-  empty: {
-    color: "#ffffff",
-    textAlign: "center",
-  },
-});
+    empty: {
+      color: colors.text,
+      textAlign: "center",
+    },
+  });

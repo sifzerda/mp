@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Modal, View, Text, Pressable, FlatList, StyleSheet, Alert } from "react-native";
 import usePlaylistStore from "../store/usePlaylistStore";
+import useThemedStyles from "../theme/useThemedStyles";
 
 export default function PlaylistPicker({
   visible,
@@ -12,6 +13,7 @@ export default function PlaylistPicker({
   const playlists = usePlaylistStore((s) => s.playlists);
   const addSong = usePlaylistStore((s) => s.addSong);
   const [busy, setBusy] = useState(false);
+  const { styles } = useThemedStyles(createStyles);
 
   const handleSelect = async (playlist) => {
     if (!song || busy) return;
@@ -72,44 +74,52 @@ export default function PlaylistPicker({
   );
 }
 
-const styles = StyleSheet.create({
-  overlay: {
-    flex: 1,
-    backgroundColor: "rgba(0,0,0,0.7)",
-    justifyContent: "center",
-    padding: 24,
-  },
-  modal: {
-    backgroundColor: "#172b40",
-    borderRadius: 20,
-    padding: 20,
-    maxHeight: "70%",
-  },
-  heading: {
-    color: "#fff",
-    fontSize: 21,
-    fontWeight: "700",
-    marginBottom: 16,
-  },
-  item: {
-    paddingVertical: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: "#34485b",
-  },
-  itemText: {
-    color: "#fff",
-    fontSize: 16,
-  },
-  empty: {
-    color: "#9baec1",
-    paddingVertical: 20,
-  },
-  close: {
-    marginTop: 18,
-    alignItems: "center",
-  },
-  closeText: {
-    color: "#00d9ff",
-    fontSize: 16,
-  },
-});
+const createStyles = (colors) =>
+  StyleSheet.create({
+    overlay: {
+      flex: 1,
+      backgroundColor: colors.overlay,
+      justifyContent: "center",
+      padding: 24,
+    },
+
+    modal: {
+      backgroundColor: colors.surface,
+      borderRadius: 20,
+      padding: 20,
+      maxHeight: "70%",
+    },
+
+    heading: {
+      color: colors.text,
+      fontSize: 21,
+      fontWeight: "700",
+      marginBottom: 16,
+    },
+
+    item: {
+      paddingVertical: 16,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.border,
+    },
+
+    itemText: {
+      color: colors.text,
+      fontSize: 16,
+    },
+
+    empty: {
+      color: colors.muted,
+      paddingVertical: 20,
+    },
+
+    close: {
+      marginTop: 18,
+      alignItems: "center",
+    },
+
+    closeText: {
+      color: colors.primary,
+      fontSize: 16,
+    },
+  });

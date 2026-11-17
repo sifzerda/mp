@@ -9,7 +9,7 @@ import {
   Modal,
 } from "react-native";
 
-import colors from "../theme/colors";
+import useThemedStyles from "../theme/useThemedStyles";
 import useFavoritesStore from "../store/useFavoritesStore";
 import AlbumArtwork from "./AlbumArtwork";
 
@@ -30,14 +30,9 @@ export default function SongItem({
   onAddToQueue,
 }) {
   const [menuVisible, setMenuVisible] = useState(false);
-
-  const isFavorite = useFavoritesStore((s) =>
-    s.favorites.includes(String(song.id))
-  );
-
-  const toggleFavorite = useFavoritesStore(
-    (s) => s.toggleFavorite
-  );
+  const { styles } = useThemedStyles(createStyles);
+  const isFavorite = useFavoritesStore((s) => s.favorites.includes(String(song.id)));
+  const toggleFavorite = useFavoritesStore((s) => s.toggleFavorite);
 
   const closeMenu = () => setMenuVisible(false);
 
@@ -199,127 +194,128 @@ export default function SongItem({
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingVertical: 8,
-    gap: 4,
-  },
+const createStyles = (colors) =>
+  StyleSheet.create({
+    container: {
+      flexDirection: "row",
+      alignItems: "center",
+      paddingVertical: 8,
+      gap: 4,
+    },
 
-  songButton: {
-    flex: 1,
-    minWidth: 0,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
-    borderRadius: 12,
-  },
+    songButton: {
+      flex: 1,
+      minWidth: 0,
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 10,
+      borderRadius: 12,
+    },
 
-  pressed: {
-    backgroundColor: colors.surfaceAlt,
-    opacity: 0.8,
-  },
+    pressed: {
+      backgroundColor: colors.surfaceAlt,
+      opacity: 0.8,
+    },
 
-  info: {
-    flex: 1,
-    minWidth: 0,
-    gap: 3,
-  },
+    info: {
+      flex: 1,
+      minWidth: 0,
+      gap: 3,
+    },
 
-  title: {
-    color: colors.text,
-    fontSize: 15,
-    fontWeight: "600",
-  },
+    title: {
+      color: colors.text,
+      fontSize: 15,
+      fontWeight: "600",
+    },
 
-  artist: {
-    color: colors.muted,
-    fontSize: 12,
-  },
+    artist: {
+      color: colors.muted,
+      fontSize: 12,
+    },
 
-  duration: {
-    color: colors.muted,
-    fontSize: 11,
-  },
+    duration: {
+      color: colors.muted,
+      fontSize: 11,
+    },
 
-  actionButton: {
-    width: 38,
-    height: 46,
-    alignItems: "center",
-    justifyContent: "center",
-  },
+    actionButton: {
+      width: 38,
+      height: 46,
+      alignItems: "center",
+      justifyContent: "center",
+    },
 
-  heart: {
-    color: "#ffffff",
-    fontSize: 29,
-  },
+    heart: {
+      color: colors.text,
+      fontSize: 29,
+    },
 
-  activeHeart: {
-    color: "#ff477e",
-  },
+    activeHeart: {
+      color: colors.danger,
+    },
 
-  add: {
-    color: "#00d9ff",
-    fontSize: 29,
-  },
+    add: {
+      color: colors.primary,
+      fontSize: 29,
+    },
 
-  more: {
-    color: "#9baec1",
-    fontSize: 28,
-    fontWeight: "700",
-  },
+    more: {
+      color: colors.muted,
+      fontSize: 28,
+      fontWeight: "700",
+    },
 
-  removeButton: {
-    paddingHorizontal: 5,
-    paddingVertical: 12,
-  },
+    removeButton: {
+      paddingHorizontal: 5,
+      paddingVertical: 12,
+    },
 
-  remove: {
-    color: "#ff477e",
-    fontSize: 12,
-  },
+    remove: {
+      color: colors.danger,
+      fontSize: 12,
+    },
 
-  overlay: {
-    flex: 1,
-    backgroundColor: "rgba(0,0,0,0.65)",
-    justifyContent: "center",
-    padding: 24,
-  },
+    overlay: {
+      flex: 1,
+      backgroundColor: colors.overlay,
+      justifyContent: "center",
+      padding: 24,
+    },
 
-  menu: {
-    backgroundColor: "#142436",
-    borderRadius: 18,
-    padding: 18,
-  },
+    menu: {
+      backgroundColor: colors.surface,
+      borderRadius: 18,
+      padding: 18,
+    },
 
-  menuTitle: {
-    color: "#ffffff",
-    fontSize: 18,
-    fontWeight: "700",
-    marginBottom: 14,
-  },
+    menuTitle: {
+      color: colors.text,
+      fontSize: 18,
+      fontWeight: "700",
+      marginBottom: 14,
+    },
 
-  menuItem: {
-    paddingVertical: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: "#28445b",
-  },
+    menuItem: {
+      paddingVertical: 16,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.border,
+    },
 
-  menuText: {
-    color: "#ffffff",
-    fontSize: 16,
-  },
+    menuText: {
+      color: colors.text,
+      fontSize: 16,
+    },
 
-  cancelButton: {
-    alignItems: "center",
-    paddingTop: 20,
-    paddingBottom: 5,
-  },
+    cancelButton: {
+      alignItems: "center",
+      paddingTop: 20,
+      paddingBottom: 5,
+    },
 
-  cancelText: {
-    color: "#00d9ff",
-    fontSize: 15,
-    fontWeight: "700",
-  },
-});
+    cancelText: {
+      color: colors.primary,
+      fontSize: 15,
+      fontWeight: "700",
+    },
+  });

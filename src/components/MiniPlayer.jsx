@@ -1,6 +1,7 @@
 // src/components/MiniPlayer.jsx 
 
 import { useMemo, useState } from "react";
+
 import {
   View,
   Text,
@@ -23,8 +24,10 @@ import {
 } from "../services/audioService";
 
 import AlbumArtwork from "./AlbumArtwork";
+
 import usePlayerStore from "../store/usePlayerStore";
 import useMusicStore from "../store/useMusicStore";
+import useThemedStyles from "../theme/useThemedStyles";
 
 function formatTime(seconds) {
   const total = Math.floor(Math.max(0, seconds || 0));
@@ -35,6 +38,8 @@ function formatTime(seconds) {
 }
 
 export default function MiniPlayer() {
+  const { colors, styles } = useThemedStyles(createStyles);
+
   const track = useActiveTrack();
   const playback = usePlaybackState();
   const { position, duration } = useProgress(500);
@@ -45,13 +50,14 @@ export default function MiniPlayer() {
   const [isSeeking, setIsSeeking] = useState(false);
   const [seekPosition, setSeekPosition] = useState(0);
 
-  // Use the original library song for embedded artwork.
   const artworkSong = useMemo(() => {
     if (!track) return null;
 
     return (
       songs.find(
-        (song) => String(song.id) === String(track.id)
+        (song) =>
+          String(song.id) === String(track.id) ||
+          song.uri === track.url
       ) || track
     );
   }, [songs, track]);
@@ -93,7 +99,6 @@ export default function MiniPlayer() {
 
   return (
     <View style={styles.container}>
-      {/* Song information and playback buttons */}
       <View style={styles.topRow}>
         <Pressable
           style={styles.details}
@@ -108,17 +113,11 @@ export default function MiniPlayer() {
           />
 
           <View style={styles.songInfo}>
-            <Text
-              style={styles.title}
-              numberOfLines={1}
-            >
+            <Text style={styles.title} numberOfLines={1}>
               {track.title || "Unknown title"}
             </Text>
 
-            <Text
-              style={styles.artist}
-              numberOfLines={1}
-            >
+            <Text style={styles.artist} numberOfLines={1}>
               {track.artist || "Unknown artist"}
             </Text>
           </View>
@@ -145,26 +144,22 @@ export default function MiniPlayer() {
         </Pressable>
       </View>
 
-      {/* Seekable progress bar */}
       <Slider
         style={styles.slider}
         minimumValue={0}
         maximumValue={sliderMaximum}
         value={sliderValue}
-        minimumTrackTintColor="#00d9ff"
-        maximumTrackTintColor="#34485b"
-        thumbTintColor="#00d9ff"
+        minimumTrackTintColor={colors.primary}
+        maximumTrackTintColor={colors.sliderTrack}
+        thumbTintColor={colors.primary}
         disabled={totalDuration <= 0}
         onSlidingStart={handleSeekStart}
         onValueChange={(value) => {
-          if (isSeeking) {
-            setSeekPosition(value);
-          }
+          if (isSeeking) setSeekPosition(value);
         }}
         onSlidingComplete={handleSeekComplete}
       />
 
-      {/* Playback times */}
       <View style={styles.times}>
         <Text style={styles.time}>
           {formatTime(currentPosition)}
@@ -178,71 +173,72 @@ export default function MiniPlayer() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    backgroundColor: "#142436",
-    borderTopWidth: 1,
-    borderTopColor: "#28445b",
-    paddingHorizontal: 12,
-    paddingTop: 10,
-    paddingBottom: 6,
-  },
+const createStyles = (colors) =>
+  StyleSheet.create({
+    container: {
+      backgroundColor: colors.surface,
+      borderTopWidth: 1,
+      borderTopColor: colors.border,
+      paddingHorizontal: 12,
+      paddingTop: 10,
+      paddingBottom: 6,
+    },
 
-  topRow: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
+    topRow: {
+      flexDirection: "row",
+      alignItems: "center",
+    },
 
-  details: {
-    flex: 1,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-    marginRight: 8,
-  },
+    details: {
+      flex: 1,
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 12,
+      marginRight: 8,
+    },
 
-  songInfo: {
-    flex: 1,
-    justifyContent: "center",
-  },
+    songInfo: {
+      flex: 1,
+      justifyContent: "center",
+    },
 
-  title: {
-    color: "#ffffff",
-    fontSize: 15,
-    fontWeight: "700",
-  },
+    title: {
+      color: colors.text,
+      fontSize: 15,
+      fontWeight: "700",
+    },
 
-  artist: {
-    color: "#9baec1",
-    fontSize: 12,
-    marginTop: 3,
-  },
+    artist: {
+      color: colors.muted,
+      fontSize: 12,
+      marginTop: 3,
+    },
 
-  button: {
-    paddingHorizontal: 10,
-    paddingVertical: 8,
-  },
+    button: {
+      paddingHorizontal: 10,
+      paddingVertical: 8,
+    },
 
-  icon: {
-    color: "#00d9ff",
-    fontSize: 25,
-  },
+    icon: {
+      color: colors.primary,
+      fontSize: 25,
+    },
 
-  slider: {
-    width: "100%",
-    height: 30,
-    marginTop: 4,
-  },
+    slider: {
+      width: "100%",
+      height: 30,
+      marginTop: 4,
+    },
 
-  times: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    paddingHorizontal: 4,
-    marginTop: -3,
-  },
+    times: {
+      flexDirection: "row",
+      justifyContent: "space-between",
+      paddingHorizontal: 4,
+      marginTop: -3,
+    },
 
-  time: {
-    color: "#9baec1",
-    fontSize: 11,
-  },
-});
+    time: {
+      color: colors.muted,
+      fontSize: 11,
+    },
+  });

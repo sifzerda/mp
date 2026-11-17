@@ -2,10 +2,24 @@
 
 import { useState } from "react";
 import { View, Text, Pressable, StyleSheet } from "react-native";
+
 import usePlaybackStore from "../store/usePlaybackStore";
-import { toggleShuffle, cycleRepeat } from "../services/audioService";
+import useThemedStyles from "../theme/useThemedStyles";
+
+import {
+  toggleShuffle,
+  cycleRepeat,
+} from "../services/audioService";
+
+const REPEAT_LABELS = {
+  off: "Repeat Off",
+  all: "Repeat All",
+  one: "Repeat One",
+};
 
 export default function PlaybackModes() {
+  const { styles } = useThemedStyles(createStyles);
+
   const shuffle = usePlaybackStore((s) => s.shuffle);
   const repeat = usePlaybackStore((s) => s.repeat);
 
@@ -63,42 +77,43 @@ export default function PlaybackModes() {
             repeat !== "off" && styles.active,
           ]}
         >
-          {repeat === "one" ? "🔂" : "🔁"}
+          {repeat === "one" ? "↻¹" : "↻"}
         </Text>
 
         <Text style={styles.label}>
-          {repeat === "off"
-            ? "Repeat Off"
-            : repeat === "all"
-              ? "Repeat All"
-              : "Repeat One"}
+          {REPEAT_LABELS[repeat]}
         </Text>
       </Pressable>
     </View>
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flexDirection: "row",
-    justifyContent: "space-around",
-    alignItems: "center",
-    marginTop: 20,
-  },
-  button: {
-    alignItems: "center",
-    padding: 12,
-  },
-  icon: {
-    fontSize: 28,
-    color: "#777777",
-  },
-  active: {
-    color: "#00d9ff",
-  },
-  label: {
-    color: "#ffffff",
-    fontSize: 12,
-    marginTop: 5,
-  },
-});
+const createStyles = (colors) =>
+  StyleSheet.create({
+    container: {
+      flexDirection: "row",
+      justifyContent: "space-around",
+      alignItems: "center",
+      marginTop: 20,
+    },
+
+    button: {
+      alignItems: "center",
+      padding: 12,
+    },
+
+    icon: {
+      fontSize: 28,
+      color: colors.muted,
+    },
+
+    active: {
+      color: colors.primary,
+    },
+
+    label: {
+      color: colors.text,
+      fontSize: 12,
+      marginTop: 5,
+    },
+  });

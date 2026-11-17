@@ -6,6 +6,7 @@ import { View, Text, FlatList, Pressable, ActivityIndicator, Alert, StyleSheet }
 import useMusicStore from "../store/useMusicStore";
 import useFavoritesStore from "../store/useFavoritesStore";
 import usePlaylistStore from "../store/usePlaylistStore";
+import usePlayerStore from "../store/usePlayerStore";
 
 import SongItem from "../components/SongItem";
 import SearchBar from "../components/SearchBar";
@@ -14,7 +15,7 @@ import PlaylistManager from "../components/PlaylistManager";
 import PlaylistPicker from "../components/PlaylistPicker";
 import DraggablePlaylistSongs from "../components/DraggablePlaylistSongs";
 
-import colors from "../theme/colors";
+import useThemedStyles from "../theme/useThemedStyles";
 import { playSong, addSongToQueue, playSongNext } from "../services/audioService";
 
 const UNKNOWN_ARTIST = "Unknown artist";
@@ -53,6 +54,7 @@ function groupSongs(songs, type) {
 }
 
 export default function LibraryScreen() {
+  const { colors, styles } = useThemedStyles(createStyles);
   const [selectedPlaylistId, setSelectedPlaylistId] = useState(null);
   const [pickerSong, setPickerSong] = useState(null);
   const songs = useMusicStore((s) => s.songs);
@@ -70,6 +72,7 @@ export default function LibraryScreen() {
   const playlists = usePlaylistStore((s) => s.playlists);
   const loadPlaylists = usePlaylistStore((s) => s.loadPlaylists);
   const removeSong = usePlaylistStore((s) => s.removeSong);
+  const openSettings = usePlayerStore((s) => s.openSettings);
 
   useEffect(() => {
     loadSongs();
@@ -280,6 +283,7 @@ export default function LibraryScreen() {
       handleRemoveSong,
       selectCollection,
       activeTab,
+      styles,
     ]
   );
 
@@ -310,6 +314,15 @@ export default function LibraryScreen() {
             {songs.length} songs on your device
           </Text>
         </View>
+
+        <Pressable
+          onPress={openSettings}
+          style={styles.settingsButton}
+          accessibilityRole="button"
+          accessibilityLabel="Settings"
+        >
+          <Text style={styles.settingsIcon}>⚙</Text>
+        </Pressable>
 
         <Pressable
           onPress={loadSongs}
@@ -447,7 +460,7 @@ export default function LibraryScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors) => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background,
@@ -482,6 +495,16 @@ const styles = StyleSheet.create({
   refreshText: {
     color: colors.primary,
     fontWeight: "600",
+  },
+  settingsButton: {
+    width: 42,
+    height: 42,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  settingsIcon: {
+    fontSize: 28,
+    color: colors.primary,
   },
   collectionHeader: {
     marginBottom: 16,
@@ -554,7 +577,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
   },
   retryText: {
-    color: colors.text,
+    color: colors.onPrimary,
     fontWeight: "700",
   },
   playAllButton: {
@@ -566,7 +589,7 @@ const styles = StyleSheet.create({
     marginTop: 14,
   },
   playAllText: {
-    color: "#08121f",
+    color: colors.onPrimary,
     fontWeight: "700",
   },
 });

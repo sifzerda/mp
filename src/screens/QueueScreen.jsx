@@ -28,6 +28,7 @@ import {
 
 import AlbumArtwork from "../components/AlbumArtwork";
 import useMusicStore from "../store/useMusicStore";
+import useThemedStyles from "../theme/useThemedStyles";
 
 import {
   getPlaybackQueue,
@@ -37,6 +38,8 @@ import {
 } from "../services/audioService";
 
 export default function QueueScreen({ onBack }) {
+  const { colors, styles } = useThemedStyles(createStyles);
+
   const [currentTrack, setCurrentTrack] = useState(null);
   const [upcoming, setUpcoming] = useState([]);
   const [activeIndex, setActiveIndex] = useState(-1);
@@ -76,6 +79,7 @@ export default function QueueScreen({ onBack }) {
     [artworkMap]
   );
 
+  // Refresh the playback queue.
   const refresh = useCallback(async () => {
     try {
       const { tracks, activeIndex: index } =
@@ -87,9 +91,7 @@ export default function QueueScreen({ onBack }) {
         index >= 0 ? tracks[index] : null
       );
 
-      setUpcoming(
-        tracks.slice(index + 1)
-      );
+      setUpcoming(tracks.slice(index + 1));
     } catch (error) {
       console.error("Queue refresh error:", error);
     } finally {
@@ -116,6 +118,7 @@ export default function QueueScreen({ onBack }) {
     }
   );
 
+  // Serialize queue actions.
   const runAction = useCallback(
     async (action) => {
       if (busyRef.current) return;
@@ -171,8 +174,6 @@ export default function QueueScreen({ onBack }) {
     async ({ data, from, to }) => {
       draggingRef.current = false;
 
-      // Cancel stale operations if the active song
-      // changed while the user was dragging.
       if (queueChangedRef.current) {
         queueChangedRef.current = false;
         await refresh();
@@ -190,7 +191,6 @@ export default function QueueScreen({ onBack }) {
         return;
       }
 
-      // Immediately display the reordered list.
       setUpcoming(data);
 
       const offset = activeIndex + 1;
@@ -206,6 +206,7 @@ export default function QueueScreen({ onBack }) {
     [activeIndex, upcoming, refresh, runAction]
   );
 
+  // Render upcoming tracks.
   const renderItem = useCallback(
     ({ item, drag, isActive, getIndex }) => (
       <ScaleDecorator activeScale={1.03}>
@@ -249,7 +250,7 @@ export default function QueueScreen({ onBack }) {
             </View>
           </Pressable>
 
-          {/* Remove from queue */}
+          {/* Remove track */}
           <Pressable
             style={styles.actionButton}
             disabled={busy || isActive}
@@ -286,6 +287,7 @@ export default function QueueScreen({ onBack }) {
       getArtworkSong,
       handlePlay,
       handleRemove,
+      styles,
     ]
   );
 
@@ -303,7 +305,7 @@ export default function QueueScreen({ onBack }) {
 
       {loading ? (
         <ActivityIndicator
-          color="#00d9ff"
+          color={colors.primary}
           size="large"
         />
       ) : (
@@ -325,20 +327,18 @@ export default function QueueScreen({ onBack }) {
                   style={styles.songTitle}
                   numberOfLines={1}
                 >
-                  {currentTrack.title}
+                  {currentTrack.title || "Unknown title"}
                 </Text>
 
                 <Text
                   style={styles.songArtist}
                   numberOfLines={1}
                 >
-                  {currentTrack.artist}
+                  {currentTrack.artist || "Unknown artist"}
                 </Text>
               </View>
 
-              <Text style={styles.playingIcon}>
-                ♫
-              </Text>
+              <Text style={styles.playingIcon}>♫</Text>
             </View>
           ) : (
             <Text style={styles.empty}>
@@ -379,128 +379,129 @@ export default function QueueScreen({ onBack }) {
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#08121f",
-    paddingHorizontal: 20,
-    paddingTop: 20,
-  },
+const createStyles = (colors) =>
+  StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: colors.background,
+      paddingHorizontal: 20,
+      paddingTop: 20,
+    },
 
-  back: {
-    color: "#00d9ff",
-    fontSize: 16,
-    marginBottom: 18,
-  },
+    back: {
+      color: colors.primary,
+      fontSize: 16,
+      marginBottom: 18,
+    },
 
-  heading: {
-    color: "#ffffff",
-    fontSize: 28,
-    fontWeight: "800",
-    marginBottom: 24,
-  },
+    heading: {
+      color: colors.text,
+      fontSize: 28,
+      fontWeight: "800",
+      marginBottom: 24,
+    },
 
-  sectionTitle: {
-    color: "#00d9ff",
-    fontSize: 12,
-    fontWeight: "700",
-    letterSpacing: 1,
-    marginTop: 12,
-    marginBottom: 12,
-  },
+    sectionTitle: {
+      color: colors.primary,
+      fontSize: 12,
+      fontWeight: "700",
+      letterSpacing: 1,
+      marginTop: 12,
+      marginBottom: 12,
+    },
 
-  hint: {
-    color: "#9baec1",
-    fontSize: 12,
-    marginBottom: 14,
-  },
+    hint: {
+      color: colors.muted,
+      fontSize: 12,
+      marginBottom: 14,
+    },
 
-  currentRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "#193448",
-    borderRadius: 14,
-    padding: 12,
-    gap: 12,
-    marginBottom: 20,
-  },
+    currentRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      backgroundColor: colors.surfaceAlt,
+      borderRadius: 14,
+      padding: 12,
+      gap: 12,
+      marginBottom: 20,
+    },
 
-  songRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "#142436",
-    borderRadius: 12,
-    padding: 10,
-    marginBottom: 8,
-  },
+    songRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      backgroundColor: colors.surface,
+      borderRadius: 12,
+      padding: 10,
+      marginBottom: 8,
+    },
 
-  activeRow: {
-    backgroundColor: "#28445b",
-    elevation: 10,
-  },
+    activeRow: {
+      backgroundColor: colors.surfaceAlt,
+      elevation: 10,
+    },
 
-  songDetails: {
-    flex: 1,
-    minWidth: 0,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-  },
+    songDetails: {
+      flex: 1,
+      minWidth: 0,
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 12,
+    },
 
-  songText: {
-    flex: 1,
-    minWidth: 0,
-  },
+    songText: {
+      flex: 1,
+      minWidth: 0,
+    },
 
-  songTitle: {
-    color: "#ffffff",
-    fontSize: 15,
-    fontWeight: "700",
-  },
+    songTitle: {
+      color: colors.text,
+      fontSize: 15,
+      fontWeight: "700",
+    },
 
-  songArtist: {
-    color: "#9baec1",
-    fontSize: 12,
-    marginTop: 4,
-  },
+    songArtist: {
+      color: colors.muted,
+      fontSize: 12,
+      marginTop: 4,
+    },
 
-  actionButton: {
-    width: 36,
-    height: 48,
-    alignItems: "center",
-    justifyContent: "center",
-  },
+    actionButton: {
+      width: 36,
+      height: 48,
+      alignItems: "center",
+      justifyContent: "center",
+    },
 
-  removeIcon: {
-    color: "#ff477e",
-    fontSize: 18,
-  },
+    removeIcon: {
+      color: colors.danger,
+      fontSize: 18,
+    },
 
-  dragHandle: {
-    width: 38,
-    height: 52,
-    alignItems: "center",
-    justifyContent: "center",
-  },
+    dragHandle: {
+      width: 38,
+      height: 52,
+      alignItems: "center",
+      justifyContent: "center",
+    },
 
-  dragIcon: {
-    color: "#00d9ff",
-    fontSize: 30,
-    fontWeight: "700",
-  },
+    dragIcon: {
+      color: colors.primary,
+      fontSize: 30,
+      fontWeight: "700",
+    },
 
-  playingIcon: {
-    color: "#00d9ff",
-    fontSize: 25,
-  },
+    playingIcon: {
+      color: colors.primary,
+      fontSize: 25,
+    },
 
-  empty: {
-    color: "#9baec1",
-    textAlign: "center",
-    marginTop: 25,
-  },
+    empty: {
+      color: colors.muted,
+      textAlign: "center",
+      marginTop: 25,
+    },
 
-  listContent: {
-    paddingBottom: 30,
-  },
-});
+    listContent: {
+      paddingBottom: 30,
+    },
+  });

@@ -1,12 +1,26 @@
 // src/components/LibraryTabs.jsx
 
-import { ScrollView, Pressable, Text, StyleSheet } from "react-native";
-import useMusicStore from "../store/useMusicStore";
-import colors from "../theme/colors";
+import {
+  ScrollView,
+  Pressable,
+  Text,
+  StyleSheet,
+} from "react-native";
 
-const TABS = ["Songs", "Artists", "Albums", "Favorites", "Playlists"];
+import useMusicStore from "../store/useMusicStore";
+import useThemedStyles from "../theme/useThemedStyles";
+
+const TABS = [
+  "Songs",
+  "Artists",
+  "Albums",
+  "Favorites",
+  "Playlists",
+];
 
 export default function LibraryTabs() {
+  const { styles } = useThemedStyles(createStyles);
+
   const activeTab = useMusicStore((s) => s.activeTab);
   const setActiveTab = useMusicStore((s) => s.setActiveTab);
 
@@ -24,6 +38,8 @@ export default function LibraryTabs() {
           <Pressable
             key={tab}
             onPress={() => setActiveTab(tab)}
+            accessibilityRole="tab"
+            accessibilityState={{ selected: active }}
             style={[
               styles.tab,
               active && styles.activeTab,
@@ -44,33 +60,39 @@ export default function LibraryTabs() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flexGrow: 0,
-    marginBottom: 18,
-  },
-  content: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    paddingRight: 20,
-  },
-  tab: {
-    paddingHorizontal: 16,
-    paddingVertical: 11,
-    backgroundColor: colors.surface,
-    borderRadius: 12,
-  },
-  activeTab: {
-    backgroundColor: colors.primary,
-  },
-  label: {
-    color: colors.muted,
-    fontSize: 14,
-    fontWeight: "600",
-  },
-  activeLabel: {
-    color: "#08121f",
-    fontWeight: "700",
-  },
-});
+const createStyles = (colors) =>
+  StyleSheet.create({
+    container: {
+      flexGrow: 0,
+      marginBottom: 18,
+    },
+
+    content: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 8,
+      paddingRight: 20,
+    },
+
+    tab: {
+      paddingHorizontal: 16,
+      paddingVertical: 11,
+      backgroundColor: colors.surface,
+      borderRadius: 12,
+    },
+
+    activeTab: {
+      backgroundColor: colors.primary,
+    },
+
+    label: {
+      color: colors.muted,
+      fontSize: 14,
+      fontWeight: "600",
+    },
+
+    activeLabel: {
+      color: colors.onPrimary,
+      fontWeight: "700",
+    },
+  });

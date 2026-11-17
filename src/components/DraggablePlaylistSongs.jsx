@@ -5,7 +5,7 @@ import { View, Text, Pressable, StyleSheet, Alert } from "react-native";
 import DraggableFlatList, { ScaleDecorator } from "react-native-draggable-flatlist";
 import SongItem from "./SongItem";
 import usePlaylistStore from "../store/usePlaylistStore";
-import colors from "../theme/colors";
+import useThemedStyles from "../theme/useThemedStyles";
 
 export default function DraggablePlaylistSongs({
   playlist,
@@ -17,31 +17,23 @@ export default function DraggablePlaylistSongs({
   onAddToQueue,
   searchActive = false,
 }) {
-  const reorderSongs = usePlaylistStore(
-    (s) => s.reorderSongs
-  );
-
+  const reorderSongs = usePlaylistStore((s) => s.reorderSongs);
+  const { styles } = useThemedStyles(createStyles);
   // Reorder songs within the saved playlist.
   const handleDragEnd = useCallback(
     async ({ data, from, to }) => {
       if (searchActive || from === to) return;
 
       try {
-        const orderedIds = data.map((song) =>
-          String(song.id)
-        );
-
-        await reorderSongs(
-          playlist.id,
-          orderedIds
-        );
+        const orderedIds = data.map((song) => String(song.id));
+        await reorderSongs(playlist.id, orderedIds);
       } catch (error) {
         console.error("Playlist reorder error:", error);
 
         Alert.alert(
           "Reorder failed",
           error?.message ||
-            "Unable to reorder playlist songs."
+          "Unable to reorder playlist songs."
         );
       }
     },
@@ -61,7 +53,7 @@ export default function DraggablePlaylistSongs({
         Alert.alert(
           "Queue error",
           error?.message ||
-            "Unable to play this song next."
+          "Unable to play this song next."
         );
       }
     },
@@ -81,7 +73,7 @@ export default function DraggablePlaylistSongs({
         Alert.alert(
           "Queue error",
           error?.message ||
-            "Unable to add this song to the queue."
+          "Unable to add this song to the queue."
         );
       }
     },
@@ -153,6 +145,7 @@ export default function DraggablePlaylistSongs({
       handlePlayNext,
       handleAddToQueue,
       searchActive,
+      styles,
     ]
   );
 
@@ -186,7 +179,7 @@ export default function DraggablePlaylistSongs({
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors) => StyleSheet.create({
   content: {
     paddingBottom: 30,
     flexGrow: 1,
