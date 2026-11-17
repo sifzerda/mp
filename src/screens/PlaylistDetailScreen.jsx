@@ -32,7 +32,9 @@ export default function PlaylistDetailScreen({ route }) {
 
   const [search, setSearch] = useState("");
 
-  const songs = useMusicStore((s) => s.songs);
+  const songsById = useMusicStore(
+    (s) => s.libraryIndex.songsById
+  );
 
   const playlist = usePlaylistStore((s) =>
     s.playlists.find(
@@ -45,22 +47,12 @@ export default function PlaylistDetailScreen({ route }) {
   const playlistSongs = useMemo(() => {
     if (!playlist) return [];
 
-    const songMap = new Map(
-      songs.map((song) => [
-        String(song.id),
-        song,
-      ])
-    );
-
     return playlist.songIds
-      .map((id) => songMap.get(String(id)))
+      .map((id) => songsById.get(String(id)))
       .filter(Boolean);
-  }, [songs, playlist]);
+  }, [songsById, playlist]);
 
-  const items = useMemo(
-    () => filterSongs(playlistSongs, search),
-    [playlistSongs, search]
-  );
+  const items = useMemo(() => filterSongs(playlistSongs, search), [playlistSongs, search]);
 
   const {
     pickerSong,

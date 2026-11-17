@@ -1,6 +1,11 @@
 // src/components/SongItem.jsx
 
-import { useState } from "react";
+import {
+  memo,
+  useCallback,
+  useState,
+} from "react";
+
 import {
   View,
   Text,
@@ -11,17 +16,197 @@ import {
 
 import useThemedStyles from "../theme/useThemedStyles";
 import useFavoritesStore from "../store/useFavoritesStore";
+
 import AlbumArtwork from "./AlbumArtwork";
 
+/* -------------------- HELPERS -------------------- */
+
+const favoritesCache = new WeakMap();
+
+function hasFavorite(favorites, id) {
+  let ids = favoritesCache.get(favorites);
+
+  if (!ids) {
+    ids = new Set(favorites.map(String));
+    favoritesCache.set(favorites, ids);
+  }
+
+  return ids.has(String(id));
+}
+
 function formatDuration(seconds) {
-  const total = Math.max(0, Math.floor(Number(seconds) || 0));
+  const total = Math.max(
+    0,
+    Math.floor(Number(seconds) || 0)
+  );
+
   const minutes = Math.floor(total / 60);
   const remaining = total % 60;
 
   return `${minutes}:${String(remaining).padStart(2, "0")}`;
 }
 
-export default function SongItem({
+/* -------------------- FAVORITE BUTTON -------------------- */
+
+const FavoriteButton = memo(function FavoriteButton({
+  songId,
+  styles,
+}) {
+  const isFavorite = useFavoritesStore((s) =>
+    hasFavorite(s.favorites, songId)
+  );
+
+  const toggleFavorite = useFavoritesStore(
+    (s) => s.toggleFavorite
+  );
+
+  const handlePress = useCallback(() => {
+    toggleFavorite(songId).catch(console.error);
+  }, [songId, toggleFavorite]);
+
+  return (
+    <Pressable
+      onPress={handlePress}
+      style={styles.actionButton}
+      accessibilityRole="button"
+      accessibilityLabel={
+        isFavorite ? "Remove favorite" : "Add favorite"
+      }
+    >
+      <Text
+        style={[
+          styles.heart,
+          isFavorite && styles.activeHeart,
+        ]}
+      >
+        {isFavorite ? "♥" : "♡"}
+      </Text>
+    </Pressable>
+  );
+});
+
+/* -------------------- SONG INFORMATION -------------------- */
+
+const SongInformation = memo(function SongInformation({
+  song,
+  styles,
+  onPress,
+}) {
+  return (
+    <Pressable
+      onPress={onPress}
+      style={({ pressed }) => [
+        styles.songButton,
+        pressed && styles.pressed,
+      ]}
+    >
+      <AlbumArtwork
+        song={song}
+        size={48}
+        borderRadius={12}
+      />
+
+      <View style={styles.info}>
+        <Text
+          style={styles.title}
+          numberOfLines={1}
+        >
+          {song.title || "Unknown title"}
+        </Text>
+
+        <Text
+          style={styles.artist}
+          numberOfLines={1}
+        >
+          {song.artist || "Unknown artist"}
+        </Text>
+
+        <Text style={styles.duration}>
+          {formatDuration(song.duration)}
+        </Text>
+      </View>
+    </Pressable>
+  );
+});
+
+/* -------------------- OPTIONS MENU -------------------- */
+
+function SongOptionsMenu({
+  song,
+  styles,
+  onClose,
+  onPlayNext,
+  onAddToQueue,
+}) {
+  function handleAction(callback) {
+    onClose();
+
+    Promise.resolve()
+      .then(callback)
+      .catch(console.error);
+  }
+
+  return (
+    <Modal
+      visible
+      transparent
+      animationType="fade"
+      onRequestClose={onClose}
+    >
+      <Pressable
+        style={styles.overlay}
+        onPress={onClose}
+      >
+        <Pressable
+          style={styles.menu}
+          onPress={(event) => event.stopPropagation()}
+        >
+          <Text
+            style={styles.menuTitle}
+            numberOfLines={2}
+          >
+            {song.title || "Unknown title"}
+          </Text>
+
+          {onPlayNext && (
+            <Pressable
+              style={styles.menuItem}
+              onPress={() => handleAction(onPlayNext)}
+            >
+              <Text style={styles.menuText}>
+                ⏭ Play Next
+              </Text>
+            </Pressable>
+          )}
+
+          {onAddToQueue && (
+            <Pressable
+              style={styles.menuItem}
+              onPress={() => handleAction(onAddToQueue)}
+            >
+              <Text style={styles.menuText}>
+                ☷ Add to Queue
+              </Text>
+            </Pressable>
+          )}
+
+          <Pressable
+            style={styles.cancelButton}
+            onPress={onClose}
+          >
+            <Text style={styles.cancelText}>
+              Cancel
+            </Text>
+          </Pressable>
+        </Pressable>
+      </Pressable>
+    </Modal>
+  );
+}
+
+/* -------------------- SONG ITEM -------------------- */
+
+function SongItem({
   song,
   onPress,
   onAddToPlaylist,
@@ -29,76 +214,31 @@ export default function SongItem({
   onPlayNext,
   onAddToQueue,
 }) {
-  const [menuVisible, setMenuVisible] = useState(false);
   const { styles } = useThemedStyles(createStyles);
-  const isFavorite = useFavoritesStore((s) => s.favorites.includes(String(song.id)));
-  const toggleFavorite = useFavoritesStore((s) => s.toggleFavorite);
 
-  const closeMenu = () => setMenuVisible(false);
+  const [menuVisible, setMenuVisible] = useState(false);
 
-  const handleMenuAction = (callback) => {
-    closeMenu();
+  const closeMenu = useCallback(() => {
+    setMenuVisible(false);
+  }, []);
 
-    if (callback) {
-      Promise.resolve()
-        .then(callback)
-        .catch(console.error);
-    }
-  };
+  const openMenu = useCallback(() => {
+    setMenuVisible(true);
+  }, []);
 
   return (
     <View style={styles.container}>
-      {/* Song artwork and information */}
-      <Pressable
+      <SongInformation
+        song={song}
+        styles={styles}
         onPress={onPress}
-        style={({ pressed }) => [
-          styles.songButton,
-          pressed && styles.pressed,
-        ]}
-      >
-        <AlbumArtwork
-          song={song}
-          size={48}
-          borderRadius={12}
-        />
+      />
 
-        <View style={styles.info}>
-          <Text style={styles.title} numberOfLines={1}>
-            {song.title || "Unknown title"}
-          </Text>
+      <FavoriteButton
+        songId={song.id}
+        styles={styles}
+      />
 
-          <Text style={styles.artist} numberOfLines={1}>
-            {song.artist || "Unknown artist"}
-          </Text>
-
-          <Text style={styles.duration}>
-            {formatDuration(song.duration)}
-          </Text>
-        </View>
-      </Pressable>
-
-      {/* Favorite */}
-      <Pressable
-        onPress={() =>
-          toggleFavorite(song.id).catch(console.error)
-        }
-        style={styles.actionButton}
-        accessibilityRole="button"
-        accessibilityLabel={
-          isFavorite ? "Remove favorite" : "Add favorite"
-        }
-      >
-        <Text
-          style={[
-            styles.heart,
-            isFavorite && styles.activeHeart,
-          ]}
-        >
-          {isFavorite ? "♥" : "♡"}
-        </Text>
-      </Pressable>
-
-      {/* Add to playlist */}
       {onAddToPlaylist && (
         <Pressable
           onPress={onAddToPlaylist}
@@ -110,7 +250,6 @@ export default function SongItem({
         </Pressable>
       )}
 
-      {/* Remove from playlist */}
       {onRemoveFromPlaylist && (
         <Pressable
           onPress={onRemoveFromPlaylist}
@@ -118,14 +257,15 @@ export default function SongItem({
           accessibilityRole="button"
           accessibilityLabel="Remove from playlist"
         >
-          <Text style={styles.remove}>Remove</Text>
+          <Text style={styles.remove}>
+            Remove
+          </Text>
         </Pressable>
       )}
 
-      {/* Queue options */}
       {(onPlayNext || onAddToQueue) && (
         <Pressable
-          onPress={() => setMenuVisible(true)}
+          onPress={openMenu}
           style={styles.actionButton}
           accessibilityRole="button"
           accessibilityLabel="Song options"
@@ -134,65 +274,22 @@ export default function SongItem({
         </Pressable>
       )}
 
-      {/* Options menu */}
-      <Modal
-        visible={menuVisible}
-        transparent
-        animationType="fade"
-        onRequestClose={closeMenu}
-      >
-        <Pressable
-          style={styles.overlay}
-          onPress={closeMenu}
-        >
-          <View style={styles.menu}>
-            <Text
-              style={styles.menuTitle}
-              numberOfLines={2}
-            >
-              {song.title || "Unknown title"}
-            </Text>
-
-            {onPlayNext && (
-              <Pressable
-                style={styles.menuItem}
-                onPress={() =>
-                  handleMenuAction(onPlayNext)
-                }
-              >
-                <Text style={styles.menuText}>
-                  ⏭  Play Next
-                </Text>
-              </Pressable>
-            )}
-
-            {onAddToQueue && (
-              <Pressable
-                style={styles.menuItem}
-                onPress={() =>
-                  handleMenuAction(onAddToQueue)
-                }
-              >
-                <Text style={styles.menuText}>
-                  ☷  Add to Queue
-                </Text>
-              </Pressable>
-            )}
-
-            <Pressable
-              style={styles.cancelButton}
-              onPress={closeMenu}
-            >
-              <Text style={styles.cancelText}>
-                Cancel
-              </Text>
-            </Pressable>
-          </View>
-        </Pressable>
-      </Modal>
+      {menuVisible && (
+        <SongOptionsMenu
+          song={song}
+          styles={styles}
+          onClose={closeMenu}
+          onPlayNext={onPlayNext}
+          onAddToQueue={onAddToQueue}
+        />
+      )}
     </View>
   );
 }
+
+export default memo(SongItem);
+
+/* -------------------- STYLES -------------------- */
 
 const createStyles = (colors) =>
   StyleSheet.create({

@@ -1,6 +1,5 @@
 // src/screens/AlbumDetailScreen.jsx
 
-import { useMemo } from "react";
 import { View, StyleSheet } from "react-native";
 
 import LibraryLayout from "../components/LibraryLayout";
@@ -8,26 +7,14 @@ import AlbumArtwork from "../components/AlbumArtwork";
 import SongList from "../components/SongList";
 
 import useMusicStore from "../store/useMusicStore";
+import { getAlbumId } from "../utils/musicCollections";
 
-import {
-  getArtist,
-  getAlbum,
-} from "../utils/musicCollections";
+const EMPTY_ARRAY = Object.freeze([]);
 
 export default function AlbumDetailScreen({ route }) {
   const { album, artist } = route.params;
-
-  const songs = useMusicStore((s) => s.songs);
-
-  const albumSongs = useMemo(
-    () =>
-      songs.filter(
-        (song) =>
-          getArtist(song) === artist &&
-          getAlbum(song) === album
-      ),
-    [songs, album, artist]
-  );
+  const albumId = getAlbumId(artist, album);
+  const albumSongs = useMusicStore((s) => s.libraryIndex.albumsById.get(albumId)?.songs ?? EMPTY_ARRAY);
 
   return (
     <LibraryLayout

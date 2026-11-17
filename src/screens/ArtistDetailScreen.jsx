@@ -1,25 +1,15 @@
 // src/screens/ArtistDetailScreen.jsx
 
-import { useMemo } from "react";
-
 import LibraryLayout from "../components/LibraryLayout";
 import SongList from "../components/SongList";
 
 import useMusicStore from "../store/useMusicStore";
-import { getArtist } from "../utils/musicCollections";
+
+const EMPTY_ARRAY = Object.freeze([]);
 
 export default function ArtistDetailScreen({ route }) {
   const { artist } = route.params;
-
-  const songs = useMusicStore((s) => s.songs);
-
-  const artistSongs = useMemo(
-    () =>
-      songs.filter((song) =>
-        getArtist(song) === artist
-      ),
-    [songs, artist]
-  );
+  const artistSongs = useMusicStore((s) => s.libraryIndex.artistsById.get(artist)?.songs ?? EMPTY_ARRAY);
 
   return (
     <LibraryLayout

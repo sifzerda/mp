@@ -7,8 +7,68 @@ import {
   requestMusicPermission,
 } from "../services/musicLibrary";
 
+import {
+  getLibraryIndex,
+} from "../utils/musicCollections";
+
+/* -------------------- HELPERS -------------------- */
+
+function shallowEqual(a, b) {
+  if (a === b) return true;
+
+  const keys = Object.keys(a);
+
+  if (keys.length !== Object.keys(b).length) {
+    return false;
+  }
+
+  return keys.every(
+    (key) =>
+      Object.prototype.hasOwnProperty.call(b, key) &&
+      Object.is(a[key], b[key])
+  );
+}
+
+function reconcileSongs(previous, incoming) {
+  const previousById = new Map(
+    previous.map((song) => [
+      String(song.id),
+      song,
+    ])
+  );
+
+  let changed = previous.length !== incoming.length;
+
+  const songs = incoming.map((song, index) => {
+    const existing = previousById.get(
+      String(song.id)
+    );
+
+    const result =
+      existing && shallowEqual(existing, song)
+        ? existing
+        : song;
+
+    if (result !== previous[index]) {
+      changed = true;
+    }
+
+    return result;
+  });
+
+  return changed ? songs : previous;
+}
+
+/* -------------------- INITIAL STATE -------------------- */
+
+const initialSongs = [];
+
+/* -------------------- STORE -------------------- */
+
 const useMusicStore = create((set, get) => ({
-  songs: [],
+  songs: initialSongs,
+  libraryIndex: getLibraryIndex(initialSongs),
+
   loading: false,
   permissionGranted: null,
   error: null,
@@ -26,24 +86,33 @@ const useMusicStore = create((set, get) => ({
 
       if (!granted) {
         set({
+          songs: initialSongs,
+          libraryIndex: getLibraryIndex(initialSongs),
           permissionGranted: false,
-          songs: [],
-          loading: false,
         });
 
         return;
       }
 
-      const songs = await getLocalSongs();
+      const incoming = await getLocalSongs();
+
+      const songs = reconcileSongs(
+        get().songs,
+        incoming
+      );
 
       set({
         songs,
+        libraryIndex: getLibraryIndex(songs),
         permissionGranted: true,
-        loading: false,
       });
     } catch (error) {
       set({
-        error: error?.message || "Unable to load music",
+        error:
+          error?.message || "Unable to load music",
+      });
+    } finally {
+      set({
         loading: false,
       });
     }
