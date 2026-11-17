@@ -9,7 +9,6 @@ import SongsScreen from "../screens/SongsScreen";
 import ArtistsScreen from "../screens/ArtistsScreen";
 import AlbumsScreen from "../screens/AlbumsScreen";
 import FoldersScreen from "../screens/FoldersScreen";
-import FavoritesScreen from "../screens/FavoritesScreen";
 import PlaylistsScreen from "../screens/PlaylistsScreen";
 
 import ArtistDetailScreen from "../screens/ArtistDetailScreen";
@@ -18,7 +17,6 @@ import FolderDetailScreen from "../screens/FolderDetailScreen";
 import PlaylistDetailScreen from "../screens/PlaylistDetailScreen";
 
 import useMusicStore from "../store/useMusicStore";
-import useFavoritesStore from "../store/useFavoritesStore";
 import usePlaylistStore from "../store/usePlaylistStore";
 
 import LibraryTabBar from "./LibraryTabBar";
@@ -129,13 +127,11 @@ function PlaylistNavigator() {
 
 export default function LibraryNavigator() {
   const loadSongs = useMusicStore((s) => s.loadSongs);
-  const loadFavorites = useFavoritesStore((s) => s.loadFavorites);
   const loadPlaylists = usePlaylistStore((s) => s.loadPlaylists);
 
   useEffect(() => {
     Promise.allSettled([
       loadSongs(),
-      loadFavorites(),
       loadPlaylists(),
     ]).then((results) => {
       for (const result of results) {
@@ -147,7 +143,7 @@ export default function LibraryNavigator() {
         }
       }
     });
-  }, [loadSongs, loadFavorites, loadPlaylists]);
+  }, [loadSongs, loadPlaylists]);
 
   return (
     <Tab.Navigator
@@ -176,11 +172,6 @@ export default function LibraryNavigator() {
       <Tab.Screen
         name="Folders"
         component={FolderNavigator}
-      />
-
-      <Tab.Screen
-        name="Favorites"
-        component={FavoritesScreen}
       />
 
       <Tab.Screen

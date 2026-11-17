@@ -17,61 +17,15 @@ import PlaybackProgress from "../components/PlaybackProgress";
 import AlbumArtwork from "../components/AlbumArtwork";
 
 import useCurrentSong from "../hooks/useCurrentSong";
-import useFavoritesStore from "../store/useFavoritesStore";
 import useThemedStyles from "../theme/useThemedStyles";
-
-const FavoriteButton = memo(function FavoriteButton({
-  songId,
-}) {
-  const { styles } = useThemedStyles(createStyles);
-
-  const isFavorite = useFavoritesStore(
-    (s) => songId != null &&
-      s.favoriteIds.has(String(songId))
-  );
-
-  const toggleFavorite = useFavoritesStore(
-    (s) => s.toggleFavorite
-  );
-
-  const handlePress = useCallback(() => {
-    if (songId == null) return;
-
-    toggleFavorite(songId).catch(console.error);
-  }, [songId, toggleFavorite]);
-
-  return (
-    <Pressable
-      onPress={handlePress}
-      disabled={songId == null}
-      accessibilityRole="button"
-      accessibilityLabel={
-        isFavorite
-          ? "Remove from favorites"
-          : "Add to favorites"
-      }
-      style={styles.favoriteButton}
-    >
-      <Text
-        style={[
-          styles.heart,
-          isFavorite && styles.activeHeart,
-        ]}
-      >
-        {isFavorite ? "♥" : "♡"}
-      </Text>
-    </Pressable>
-  );
-});
 
 function NowPlayingScreen({ navigation }) {
   const { styles } = useThemedStyles(createStyles);
 
   const track = useActiveTrack();
   const artworkSong = useCurrentSong(track);
-  const isFocused = useIsFocused();
 
-  const songId = artworkSong?.id ?? track?.id;
+  const isFocused = useIsFocused();
 
   const closePlayer = useCallback(() => {
     navigation.goBack();
@@ -109,13 +63,9 @@ function NowPlayingScreen({ navigation }) {
         />
       </View>
 
-      <View style={styles.titleRow}>
-        <Text style={styles.title} numberOfLines={2}>
-          {track.title || "Unknown title"}
-        </Text>
-
-        <FavoriteButton songId={songId} />
-      </View>
+      <Text style={styles.title} numberOfLines={2}>
+        {track.title || "Unknown title"}
+      </Text>
 
       <Text style={styles.artist}>
         {track.artist || "Unknown artist"}
@@ -146,6 +96,8 @@ function NowPlayingScreen({ navigation }) {
 
 export default memo(NowPlayingScreen);
 
+/* -------------------- STYLES -------------------- */
+
 const createStyles = (colors) =>
   StyleSheet.create({
     container: {
@@ -168,15 +120,7 @@ const createStyles = (colors) =>
       marginBottom: 24,
     },
 
-    titleRow: {
-      flexDirection: "row",
-      alignItems: "center",
-      justifyContent: "center",
-      gap: 12,
-    },
-
     title: {
-      flexShrink: 1,
       color: colors.text,
       fontSize: 26,
       fontWeight: "bold",
@@ -188,19 +132,6 @@ const createStyles = (colors) =>
       fontSize: 16,
       textAlign: "center",
       marginTop: 8,
-    },
-
-    favoriteButton: {
-      padding: 10,
-    },
-
-    heart: {
-      color: colors.text,
-      fontSize: 32,
-    },
-
-    activeHeart: {
-      color: colors.danger,
     },
 
     queueButton: {

@@ -15,24 +15,9 @@ import {
 } from "react-native";
 
 import useThemedStyles from "../theme/useThemedStyles";
-import useFavoritesStore from "../store/useFavoritesStore";
-
 import AlbumArtwork from "./AlbumArtwork";
 
 /* -------------------- HELPERS -------------------- */
-
-const favoritesCache = new WeakMap();
-
-function hasFavorite(favorites, id) {
-  let ids = favoritesCache.get(favorites);
-
-  if (!ids) {
-    ids = new Set(favorites.map(String));
-    favoritesCache.set(favorites, ids);
-  }
-
-  return ids.has(String(id));
-}
 
 function formatDuration(seconds) {
   const total = Math.max(
@@ -45,41 +30,6 @@ function formatDuration(seconds) {
 
   return `${minutes}:${String(remaining).padStart(2, "0")}`;
 }
-
-/* -------------------- FAVORITE BUTTON -------------------- */
-
-const FavoriteButton = memo(function FavoriteButton({
-  songId,
-  styles,
-}) {
-
-  const isFavorite = useFavoritesStore((s) => s.favoriteIds.has(String(songId)));
-  const toggleFavorite = useFavoritesStore((s) => s.toggleFavorite);
-
-  const handlePress = useCallback(() => {
-    toggleFavorite(songId).catch(console.error);
-  }, [songId, toggleFavorite]);
-
-  return (
-    <Pressable
-      onPress={handlePress}
-      style={styles.actionButton}
-      accessibilityRole="button"
-      accessibilityLabel={
-        isFavorite ? "Remove favorite" : "Add favorite"
-      }
-    >
-      <Text
-        style={[
-          styles.heart,
-          isFavorite && styles.activeHeart,
-        ]}
-      >
-        {isFavorite ? "♥" : "♡"}
-      </Text>
-    </Pressable>
-  );
-});
 
 /* -------------------- SONG INFORMATION -------------------- */
 
@@ -103,17 +53,11 @@ const SongInformation = memo(function SongInformation({
       />
 
       <View style={styles.info}>
-        <Text
-          style={styles.title}
-          numberOfLines={1}
-        >
+        <Text style={styles.title} numberOfLines={1}>
           {song.title || "Unknown title"}
         </Text>
 
-        <Text
-          style={styles.artist}
-          numberOfLines={1}
-        >
+        <Text style={styles.artist} numberOfLines={1}>
           {song.artist || "Unknown artist"}
         </Text>
 
@@ -157,10 +101,7 @@ function SongOptionsMenu({
           style={styles.menu}
           onPress={(event) => event.stopPropagation()}
         >
-          <Text
-            style={styles.menuTitle}
-            numberOfLines={2}
-          >
+          <Text style={styles.menuTitle} numberOfLines={2}>
             {song.title || "Unknown title"}
           </Text>
 
@@ -228,11 +169,6 @@ function SongItem({
         song={song}
         styles={styles}
         onPress={onPress}
-      />
-
-      <FavoriteButton
-        songId={song.id}
-        styles={styles}
       />
 
       {onAddToPlaylist && (
@@ -337,15 +273,6 @@ const createStyles = (colors) =>
       height: 46,
       alignItems: "center",
       justifyContent: "center",
-    },
-
-    heart: {
-      color: colors.text,
-      fontSize: 29,
-    },
-
-    activeHeart: {
-      color: colors.danger,
     },
 
     add: {

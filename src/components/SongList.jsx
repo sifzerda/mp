@@ -1,5 +1,5 @@
 // src/components/SongList.jsx
-// shared by Songs, Favorites, Artist Details and Album Details.
+// shared by Songs,Artist Details and Album Details.
 
 import {
   memo,

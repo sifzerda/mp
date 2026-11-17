@@ -16,21 +16,19 @@ import {
   Users,
   Disc3,
   Folder,
-  Heart,
   ListMusic,
 } from "lucide-react-native";
 
 import MiniPlayer from "../components/MiniPlayer";
 import useThemedStyles from "../theme/useThemedStyles";
 
-/* -------------------- TAB ICONS -------------------- */
+/* -------------------- ICONS -------------------- */
 
 const ICONS = {
   Songs: Music,
   Artists: Users,
   Albums: Disc3,
   Folders: Folder,
-  Favorites: Heart,
   Playlists: ListMusic,
 };
 
@@ -87,7 +85,7 @@ const LibraryTab = memo(function LibraryTab({
 
       <Icon
         color={color}
-        size={22}
+        size={23}
         strokeWidth={focused ? 2.5 : 1.8}
       />
 
@@ -168,14 +166,14 @@ const createStyles = (colors) =>
     },
 
     label: {
-      fontSize: 10,
+      fontSize: 11,
       fontWeight: "600",
     },
 
     indicator: {
       position: "absolute",
       top: -8,
-      width: 28,
+      width: 30,
       height: 3,
       borderRadius: 3,
       backgroundColor: colors.primary,
