@@ -1,25 +1,37 @@
 // src/screens/PlaylistsScreen.jsx
 
+import { memo, useCallback } from "react";
+
 import LibraryLayout from "../components/LibraryLayout";
 import PlaylistManager from "../components/PlaylistManager";
+
 import usePlaylistStore from "../store/usePlaylistStore";
 
-export default function PlaylistsScreen({ navigation }) {
-  const playlists = usePlaylistStore((s) => s.playlists);
+function PlaylistsScreen({ navigation }) {
+  const count = usePlaylistStore(
+    (s) => s.playlists.length
+  );
+
+  const handleSelect = useCallback(
+    (playlist) => {
+      navigation.navigate("PlaylistDetail", {
+        playlistId: playlist.id,
+      });
+    },
+    [navigation]
+  );
 
   return (
     <LibraryLayout
       title="Playlists"
-      subtitle={`${playlists.length} playlists`}
+      subtitle={`${count} playlists`}
       showRefresh={false}
     >
       <PlaylistManager
-        onSelect={(playlist) =>
-          navigation.navigate("PlaylistDetail", {
-            playlistId: playlist.id,
-          })
-        }
+        onSelect={handleSelect}
       />
     </LibraryLayout>
   );
 }
+
+export default memo(PlaylistsScreen);

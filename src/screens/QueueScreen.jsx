@@ -1,300 +1,210 @@
 // src/screens/QueueScreen.jsx
 
-import {
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
-
-import {
-  View,
-  Text,
-  Pressable,
-  ActivityIndicator,
-  Alert,
-  StyleSheet,
-} from "react-native";
-
-import DraggableFlatList, {
-  ScaleDecorator,
-} from "react-native-draggable-flatlist";
-
-import {
-  Event,
-  useTrackPlayerEvents,
-} from "react-native-track-player";
+import { memo, useCallback } from "react";
+import { View, Text, Pressable, StyleSheet, ActivityIndicator } from "react-native";
+import DraggableFlatList, { ScaleDecorator } from "react-native-draggable-flatlist";
 
 import AlbumArtwork from "../components/AlbumArtwork";
-import useMusicStore from "../store/useMusicStore";
+
+import useCurrentSong from "../hooks/useCurrentSong";
+import usePlaybackQueue from "../hooks/usePlaybackQueue";
 import useThemedStyles from "../theme/useThemedStyles";
 
-import {
-  getPlaybackQueue,
-  removeQueuedTrack,
-  moveQueuedTrack,
-  playQueuedTrack,
-} from "../services/audioService";
+const keyExtractor = (item) => String(item.id);
 
-export default function QueueScreen({ navigation }) {
-  const onBack = () => navigation.goBack();
-  const { colors, styles } = useThemedStyles(createStyles);
+/* -------------------- SONG INFORMATION -------------------- */
 
-  const [currentTrack, setCurrentTrack] = useState(null);
-  const [upcoming, setUpcoming] = useState([]);
-  const [activeIndex, setActiveIndex] = useState(-1);
-  const [loading, setLoading] = useState(true);
-  const [busy, setBusy] = useState(false);
+const QueueSongInformation = memo(
+  function QueueSongInformation({
+    track,
+    current = false,
+  }) {
+    const { styles } = useThemedStyles(createStyles);
+    const song = useCurrentSong(track);
 
-  const busyRef = useRef(false);
-  const draggingRef = useRef(false);
-  const queueChangedRef = useRef(false);
+    return (
+      <>
+        <AlbumArtwork
+          song={song}
+          size={current ? 56 : 48}
+          borderRadius={current ? 10 : 9}
+        />
 
-  const songs = useMusicStore((s) => s.songs);
+        <View style={styles.songText}>
+          <Text
+            style={styles.songTitle}
+            numberOfLines={1}
+          >
+            {track.title || "Unknown title"}
+          </Text>
 
-  const artworkMap = useMemo(() => {
-    const map = new Map();
+          <Text
+            style={styles.songArtist}
+            numberOfLines={1}
+          >
+            {track.artist || "Unknown artist"}
+          </Text>
+        </View>
+      </>
+    );
+  }
+);
 
-    for (const song of songs) {
-      map.set(String(song.id), song);
+/* -------------------- QUEUE ITEM -------------------- */
 
-      if (song.uri) {
-        map.set(song.uri, song);
-      }
+const QueueItem = memo(function QueueItem({
+  item,
+  drag,
+  isActive,
+  getIndex,
+  busy,
+  onPlay,
+  onRemove,
+}) {
+  const { styles } = useThemedStyles(createStyles);
+
+  const disabled = busy || isActive;
+
+  function handlePlay() {
+    const index = getIndex();
+
+    if (index != null) {
+      onPlay(index, item.id);
     }
+  }
 
-    return map;
-  }, [songs]);
+  function handleRemove() {
+    const index = getIndex();
 
-  const getArtworkSong = useCallback(
-    (track) => {
-      if (!track) return null;
-
-      return (
-        artworkMap.get(String(track.id)) ||
-        artworkMap.get(track.url) ||
-        track
-      );
-    },
-    [artworkMap]
-  );
-
-  // Refresh the playback queue.
-  const refresh = useCallback(async () => {
-    try {
-      const { tracks, activeIndex: index } =
-        await getPlaybackQueue();
-
-      setActiveIndex(index);
-
-      setCurrentTrack(
-        index >= 0 ? tracks[index] : null
-      );
-
-      setUpcoming(tracks.slice(index + 1));
-    } catch (error) {
-      console.error("Queue refresh error:", error);
-    } finally {
-      setLoading(false);
+    if (index != null) {
+      onRemove(index, item.id);
     }
-  }, []);
+  }
 
-  useEffect(() => {
-    refresh();
-  }, [refresh]);
+  return (
+    <ScaleDecorator activeScale={1.03}>
+      <View
+        style={[
+          styles.songRow,
+          isActive && styles.activeRow,
+        ]}
+      >
+        <Pressable
+          style={styles.songDetails}
+          disabled={disabled}
+          onPress={handlePlay}
+          accessibilityRole="button"
+          accessibilityLabel={`Play ${item.title}`}
+        >
+          <QueueSongInformation track={item} />
+        </Pressable>
 
-  useTrackPlayerEvents(
-    [
-      Event.PlaybackActiveTrackChanged,
-      Event.PlaybackQueueEnded,
-    ],
-    () => {
-      if (draggingRef.current || busyRef.current) {
-        queueChangedRef.current = true;
-        return;
-      }
+        <Pressable
+          style={styles.actionButton}
+          disabled={disabled}
+          onPress={handleRemove}
+          accessibilityRole="button"
+          accessibilityLabel="Remove from queue"
+        >
+          <Text style={styles.removeIcon}>✕</Text>
+        </Pressable>
 
-      refresh();
-    }
+        <Pressable
+          style={styles.actionButton}
+          onLongPress={drag}
+          delayLongPress={150}
+          disabled={disabled}
+          accessibilityRole="button"
+          accessibilityLabel={`Reorder ${item.title}`}
+          accessibilityHint="Long press and drag"
+        >
+          <Text style={styles.dragIcon}>≡</Text>
+        </Pressable>
+      </View>
+    </ScaleDecorator>
   );
+});
 
-  // Serialize queue actions.
-  const runAction = useCallback(
-    async (action) => {
-      if (busyRef.current) return;
+/* -------------------- CURRENT TRACK -------------------- */
 
-      busyRef.current = true;
-      setBusy(true);
+const CurrentTrack = memo(function CurrentTrack({
+  track,
+}) {
+  const { styles } = useThemedStyles(createStyles);
 
-      try {
-        await action();
-      } catch (error) {
-        Alert.alert(
-          "Queue error",
-          error?.message ||
-            "Unable to update playback queue."
-        );
-      } finally {
-        await refresh();
+  if (!track) {
+    return (
+      <Text style={styles.empty}>
+        No song playing
+      </Text>
+    );
+  }
 
-        busyRef.current = false;
-        setBusy(false);
+  return (
+    <View style={styles.currentRow}>
+      <QueueSongInformation
+        track={track}
+        current
+      />
 
-        if (queueChangedRef.current) {
-          queueChangedRef.current = false;
-          await refresh();
-        }
-      }
-    },
-    [refresh]
+      <Text style={styles.playingIcon}>♫</Text>
+    </View>
   );
+});
 
-  const handlePlay = useCallback(
-    (index) =>
-      runAction(() =>
-        playQueuedTrack(activeIndex + 1 + index)
-      ),
-    [activeIndex, runAction]
+/* -------------------- EMPTY QUEUE -------------------- */
+
+const EmptyQueue = memo(function EmptyQueue() {
+  const { styles } = useThemedStyles(createStyles);
+
+  return (
+    <Text style={styles.empty}>
+      No upcoming songs
+    </Text>
   );
+});
 
-  const handleRemove = useCallback(
-    (index) =>
-      runAction(() =>
-        removeQueuedTrack(activeIndex + 1 + index)
-      ),
-    [activeIndex, runAction]
-  );
+/* -------------------- SCREEN -------------------- */
 
-  const handleDragBegin = useCallback(() => {
-    draggingRef.current = true;
-    queueChangedRef.current = false;
-  }, []);
+function QueueScreen({ navigation }) {
+  const { colors, styles } =
+    useThemedStyles(createStyles);
 
-  const handleDragEnd = useCallback(
-    async ({ data, from, to }) => {
-      draggingRef.current = false;
+  const {
+    currentTrack,
+    upcoming,
+    loading,
+    busy,
+    error,
+    refresh,
+    handlePlay,
+    handleRemove,
+    handleDragBegin,
+    handleDragEnd,
+  } = usePlaybackQueue();
 
-      if (queueChangedRef.current) {
-        queueChangedRef.current = false;
-        await refresh();
-        return;
-      }
+  const closeQueue = useCallback(() => {
+    navigation.goBack();
+  }, [navigation]);
 
-      if (from === to || busyRef.current) {
-        return;
-      }
-
-      const movedTrack = upcoming[from];
-
-      if (!movedTrack) {
-        await refresh();
-        return;
-      }
-
-      setUpcoming(data);
-
-      const offset = activeIndex + 1;
-
-      await runAction(() =>
-        moveQueuedTrack(
-          from + offset,
-          to + offset,
-          movedTrack.id
-        )
-      );
-    },
-    [activeIndex, upcoming, refresh, runAction]
-  );
-
-  // Render upcoming tracks.
   const renderItem = useCallback(
     ({ item, drag, isActive, getIndex }) => (
-      <ScaleDecorator activeScale={1.03}>
-        <View
-          style={[
-            styles.songRow,
-            isActive && styles.activeRow,
-          ]}
-        >
-          <Pressable
-            style={styles.songDetails}
-            disabled={busy || isActive}
-            onPress={() => {
-              const index = getIndex();
-
-              if (index != null) {
-                handlePlay(index);
-              }
-            }}
-          >
-            <AlbumArtwork
-              song={getArtworkSong(item)}
-              size={48}
-              borderRadius={9}
-            />
-
-            <View style={styles.songText}>
-              <Text
-                style={styles.songTitle}
-                numberOfLines={1}
-              >
-                {item.title || "Unknown title"}
-              </Text>
-
-              <Text
-                style={styles.songArtist}
-                numberOfLines={1}
-              >
-                {item.artist || "Unknown artist"}
-              </Text>
-            </View>
-          </Pressable>
-
-          {/* Remove track */}
-          <Pressable
-            style={styles.actionButton}
-            disabled={busy || isActive}
-            onPress={() => {
-              const index = getIndex();
-
-              if (index != null) {
-                handleRemove(index);
-              }
-            }}
-            accessibilityRole="button"
-            accessibilityLabel="Remove from queue"
-          >
-            <Text style={styles.removeIcon}>✕</Text>
-          </Pressable>
-
-          {/* Drag handle */}
-          <Pressable
-            style={styles.dragHandle}
-            onLongPress={drag}
-            delayLongPress={150}
-            disabled={busy || isActive}
-            accessibilityRole="button"
-            accessibilityLabel={`Reorder ${item.title}`}
-            accessibilityHint="Long press and drag"
-          >
-            <Text style={styles.dragIcon}>≡</Text>
-          </Pressable>
-        </View>
-      </ScaleDecorator>
+      <QueueItem
+        item={item}
+        drag={drag}
+        isActive={isActive}
+        getIndex={getIndex}
+        busy={busy}
+        onPlay={handlePlay}
+        onRemove={handleRemove}
+      />
     ),
-    [
-      busy,
-      getArtworkSong,
-      handlePlay,
-      handleRemove,
-      styles,
-    ]
+    [busy, handlePlay, handleRemove]
   );
 
   return (
     <View style={styles.container}>
-      <Pressable onPress={onBack}>
+      <Pressable onPress={closeQueue}>
         <Text style={styles.back}>
           ‹ Now Playing
         </Text>
@@ -305,47 +215,36 @@ export default function QueueScreen({ navigation }) {
       </Text>
 
       {loading ? (
-        <ActivityIndicator
-          color={colors.primary}
-          size="large"
-        />
+        <View style={styles.center}>
+          <ActivityIndicator
+            color={colors.primary}
+            size="large"
+          />
+        </View>
       ) : (
         <>
+          {error && (
+            <View style={styles.errorContainer}>
+              <Text style={styles.error}>
+                {error}
+              </Text>
+
+              <Pressable
+                onPress={refresh}
+                style={styles.retryButton}
+              >
+                <Text style={styles.retryText}>
+                  Try Again
+                </Text>
+              </Pressable>
+            </View>
+          )}
+
           <Text style={styles.sectionTitle}>
             NOW PLAYING
           </Text>
 
-          {currentTrack ? (
-            <View style={styles.currentRow}>
-              <AlbumArtwork
-                song={getArtworkSong(currentTrack)}
-                size={56}
-                borderRadius={10}
-              />
-
-              <View style={styles.songText}>
-                <Text
-                  style={styles.songTitle}
-                  numberOfLines={1}
-                >
-                  {currentTrack.title || "Unknown title"}
-                </Text>
-
-                <Text
-                  style={styles.songArtist}
-                  numberOfLines={1}
-                >
-                  {currentTrack.artist || "Unknown artist"}
-                </Text>
-              </View>
-
-              <Text style={styles.playingIcon}>♫</Text>
-            </View>
-          ) : (
-            <Text style={styles.empty}>
-              No song playing
-            </Text>
-          )}
+          <CurrentTrack track={currentTrack} />
 
           <Text style={styles.sectionTitle}>
             UP NEXT ({upcoming.length})
@@ -359,26 +258,32 @@ export default function QueueScreen({ navigation }) {
 
           <DraggableFlatList
             data={upcoming}
-            keyExtractor={(item) => String(item.id)}
+            keyExtractor={keyExtractor}
             renderItem={renderItem}
             onDragBegin={handleDragBegin}
             onDragEnd={handleDragEnd}
+            extraData={busy}
             activationDistance={5}
             autoscrollThreshold={70}
             autoscrollSpeed={100}
+            initialNumToRender={12}
+            maxToRenderPerBatch={12}
+            windowSize={7}
+            updateCellsBatchingPeriod={50}
+            removeClippedSubviews={false}
             showsVerticalScrollIndicator={false}
             contentContainerStyle={styles.listContent}
-            ListEmptyComponent={
-              <Text style={styles.empty}>
-                No upcoming songs
-              </Text>
-            }
+            ListEmptyComponent={EmptyQueue}
           />
         </>
       )}
     </View>
   );
 }
+
+export default memo(QueueScreen);
+
+/* -------------------- STYLES -------------------- */
 
 const createStyles = (colors) =>
   StyleSheet.create({
@@ -427,6 +332,11 @@ const createStyles = (colors) =>
       marginBottom: 20,
     },
 
+    playingIcon: {
+      color: colors.primary,
+      fontSize: 24,
+    },
+
     songRow: {
       flexDirection: "row",
       alignItems: "center",
@@ -467,10 +377,8 @@ const createStyles = (colors) =>
     },
 
     actionButton: {
-      width: 36,
-      height: 48,
-      alignItems: "center",
-      justifyContent: "center",
+      paddingHorizontal: 12,
+      paddingVertical: 10,
     },
 
     removeIcon: {
@@ -478,31 +386,47 @@ const createStyles = (colors) =>
       fontSize: 18,
     },
 
-    dragHandle: {
-      width: 38,
-      height: 52,
+    dragIcon: {
+      color: colors.muted,
+      fontSize: 26,
+    },
+
+    center: {
+      flex: 1,
       alignItems: "center",
       justifyContent: "center",
-    },
-
-    dragIcon: {
-      color: colors.primary,
-      fontSize: 30,
-      fontWeight: "700",
-    },
-
-    playingIcon: {
-      color: colors.primary,
-      fontSize: 25,
     },
 
     empty: {
       color: colors.muted,
       textAlign: "center",
-      marginTop: 25,
+      paddingVertical: 24,
     },
 
     listContent: {
       paddingBottom: 30,
+    },
+
+    errorContainer: {
+      alignItems: "center",
+      padding: 12,
+      gap: 10,
+    },
+
+    error: {
+      color: colors.danger,
+      textAlign: "center",
+    },
+
+    retryButton: {
+      backgroundColor: colors.surface,
+      paddingHorizontal: 18,
+      paddingVertical: 10,
+      borderRadius: 10,
+    },
+
+    retryText: {
+      color: colors.primary,
+      fontWeight: "700",
     },
   });

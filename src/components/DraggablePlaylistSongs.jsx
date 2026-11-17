@@ -1,13 +1,139 @@
 // src/components/DraggablePlaylistSongs.jsx
 
-import { useCallback } from "react";
-import { View, Text, Pressable, StyleSheet, Alert } from "react-native";
-import DraggableFlatList, { ScaleDecorator } from "react-native-draggable-flatlist";
+import {
+  memo,
+  useCallback,
+  useRef,
+} from "react";
+
+import {
+  View,
+  Text,
+  Pressable,
+  StyleSheet,
+  Alert,
+} from "react-native";
+
+import DraggableFlatList, {
+  ScaleDecorator,
+} from "react-native-draggable-flatlist";
+
 import SongItem from "./SongItem";
+
 import usePlaylistStore from "../store/usePlaylistStore";
 import useThemedStyles from "../theme/useThemedStyles";
 
-export default function DraggablePlaylistSongs({
+const keyExtractor = (item) => String(item.id);
+
+const PlaylistSongRow = memo(function PlaylistSongRow({
+  song,
+  drag,
+  isActive,
+  searchActive,
+  onPlaySong,
+  onAddToPlaylist,
+  onRemoveSong,
+  onPlayNext,
+  onAddToQueue,
+}) {
+  const { styles } = useThemedStyles(createStyles);
+
+  const handlePlay = useCallback(
+    () => onPlaySong(song),
+    [onPlaySong, song]
+  );
+
+  const handleAdd = useCallback(
+    () => onAddToPlaylist?.(song),
+    [onAddToPlaylist, song]
+  );
+
+  const handleRemove = useCallback(
+    () => onRemoveSong?.(song),
+    [onRemoveSong, song]
+  );
+
+  const handleNext = useCallback(
+    () => onPlayNext?.(song),
+    [onPlayNext, song]
+  );
+
+  const handleQueue = useCallback(
+    () => onAddToQueue?.(song),
+    [onAddToQueue, song]
+  );
+
+  return (
+    <ScaleDecorator>
+      <View
+        style={[
+          styles.row,
+          isActive && styles.activeRow,
+        ]}
+      >
+        <View style={styles.song}>
+          <SongItem
+            song={song}
+            onPress={handlePlay}
+            onAddToPlaylist={
+              onAddToPlaylist ? handleAdd : undefined
+            }
+            onRemoveFromPlaylist={
+              onRemoveSong ? handleRemove : undefined
+            }
+            onPlayNext={
+              onPlayNext ? handleNext : undefined
+            }
+            onAddToQueue={
+              onAddToQueue ? handleQueue : undefined
+            }
+          />
+        </View>
+
+        <Pressable
+          onLongPress={
+            searchActive ? undefined : drag
+          }
+          delayLongPress={180}
+          disabled={isActive || searchActive}
+          style={[
+            styles.dragHandle,
+            searchActive && styles.disabledHandle,
+          ]}
+          accessibilityRole="button"
+          accessibilityLabel={`Reorder ${song.title}`}
+          accessibilityHint="Long press and drag to reorder"
+        >
+          <Text style={styles.dragIcon}>≡</Text>
+        </Pressable>
+      </View>
+    </ScaleDecorator>
+  );
+});
+
+const EmptyPlaylist = memo(function EmptyPlaylist({
+  searchActive,
+}) {
+  const { styles } = useThemedStyles(createStyles);
+
+  return (
+    <View style={styles.emptyContainer}>
+      <Text style={styles.emptyText}>
+        {searchActive
+          ? "No matching or available songs."
+          : "This playlist is empty."}
+      </Text>
+
+      {!searchActive && (
+        <Text style={styles.emptyText}>
+          Add songs using the ＋ button in your library.
+        </Text>
+      )}
+    </View>
+  );
+});
+
+function DraggablePlaylistSongs({
   playlist,
   songs,
   onPlaySong,
@@ -17,217 +143,162 @@ export default function DraggablePlaylistSongs({
   onAddToQueue,
   searchActive = false,
 }) {
-  const reorderSongs = usePlaylistStore((s) => s.reorderSongs);
   const { styles } = useThemedStyles(createStyles);
-  // Reorder songs within the saved playlist.
+
+  const reorderSongs = usePlaylistStore(
+    (s) => s.reorderSongs
+  );
+
+  const dragSnapshot = useRef(null);
+  const savingRef = useRef(false);
+
+  const handleDragBegin = useCallback(() => {
+    dragSnapshot.current = playlist.songIds;
+  }, [playlist.songIds]);
+
   const handleDragEnd = useCallback(
     async ({ data, from, to }) => {
-      if (searchActive || from === to) return;
+      const expectedSongIds = dragSnapshot.current;
+
+      dragSnapshot.current = null;
+
+      if (
+        searchActive ||
+        from === to ||
+        !expectedSongIds ||
+        savingRef.current
+      ) {
+        return;
+      }
+
+      savingRef.current = true;
 
       try {
-        const orderedIds = data.map((song) => String(song.id));
-        await reorderSongs(playlist.id, orderedIds);
+        await reorderSongs(
+          playlist.id,
+          data.map((song) => String(song.id)),
+          expectedSongIds
+        );
       } catch (error) {
-        console.error("Playlist reorder error:", error);
-
         Alert.alert(
           "Reorder failed",
           error?.message ||
-          "Unable to reorder playlist songs."
+            "Unable to reorder playlist songs."
         );
+      } finally {
+        savingRef.current = false;
       }
     },
-    [playlist.id, reorderSongs, searchActive]
-  );
-
-  // Add song immediately after the current track.
-  const handlePlayNext = useCallback(
-    async (song) => {
-      if (!onPlayNext) return;
-
-      try {
-        await onPlayNext(song);
-      } catch (error) {
-        console.error("Play Next error:", error);
-
-        Alert.alert(
-          "Queue error",
-          error?.message ||
-          "Unable to play this song next."
-        );
-      }
-    },
-    [onPlayNext]
-  );
-
-  // Append song to the playback queue.
-  const handleAddToQueue = useCallback(
-    async (song) => {
-      if (!onAddToQueue) return;
-
-      try {
-        await onAddToQueue(song);
-      } catch (error) {
-        console.error("Add to Queue error:", error);
-
-        Alert.alert(
-          "Queue error",
-          error?.message ||
-          "Unable to add this song to the queue."
-        );
-      }
-    },
-    [onAddToQueue]
+    [playlist.id, searchActive, reorderSongs]
   );
 
   const renderItem = useCallback(
     ({ item, drag, isActive }) => (
-      <ScaleDecorator>
-        <View
-          style={[
-            styles.row,
-            isActive && styles.activeRow,
-          ]}
-        >
-          <View style={styles.song}>
-            <SongItem
-              song={item}
-              onPress={() => onPlaySong(item)}
-              onAddToPlaylist={
-                onAddToPlaylist
-                  ? () => onAddToPlaylist(item)
-                  : undefined
-              }
-              onRemoveFromPlaylist={
-                onRemoveSong
-                  ? () => onRemoveSong(item)
-                  : undefined
-              }
-              onPlayNext={
-                onPlayNext
-                  ? () => handlePlayNext(item)
-                  : undefined
-              }
-              onAddToQueue={
-                onAddToQueue
-                  ? () => handleAddToQueue(item)
-                  : undefined
-              }
-            />
-          </View>
-
-          {/* Drag handle for playlist ordering */}
-          <Pressable
-            onLongPress={
-              searchActive ? undefined : drag
-            }
-            delayLongPress={180}
-            disabled={isActive || searchActive}
-            style={[
-              styles.dragHandle,
-              searchActive && styles.disabledHandle,
-            ]}
-            accessibilityRole="button"
-            accessibilityLabel={`Reorder ${item.title}`}
-            accessibilityHint="Long press and drag to reorder"
-          >
-            <Text style={styles.dragIcon}>≡</Text>
-          </Pressable>
-        </View>
-      </ScaleDecorator>
+      <PlaylistSongRow
+        song={item}
+        drag={drag}
+        isActive={isActive}
+        searchActive={searchActive}
+        onPlaySong={onPlaySong}
+        onAddToPlaylist={onAddToPlaylist}
+        onRemoveSong={onRemoveSong}
+        onPlayNext={onPlayNext}
+        onAddToQueue={onAddToQueue}
+      />
     ),
     [
+      searchActive,
       onPlaySong,
       onAddToPlaylist,
       onRemoveSong,
       onPlayNext,
       onAddToQueue,
-      handlePlayNext,
-      handleAddToQueue,
-      searchActive,
-      styles,
     ]
+  );
+
+  const renderEmpty = useCallback(
+    () => (
+      <EmptyPlaylist
+        searchActive={searchActive}
+      />
+    ),
+    [searchActive]
   );
 
   return (
     <DraggableFlatList
       data={songs}
-      keyExtractor={(item) => String(item.id)}
+      keyExtractor={keyExtractor}
       renderItem={renderItem}
+      onDragBegin={handleDragBegin}
       onDragEnd={handleDragEnd}
+      ListEmptyComponent={renderEmpty}
       showsVerticalScrollIndicator={false}
       activationDistance={10}
       autoscrollThreshold={70}
       autoscrollSpeed={80}
+      initialNumToRender={12}
+      maxToRenderPerBatch={12}
+      updateCellsBatchingPeriod={50}
+      windowSize={7}
+      removeClippedSubviews={false}
       contentContainerStyle={styles.content}
-      ListEmptyComponent={
-        <View style={styles.emptyContainer}>
-          <Text style={styles.emptyText}>
-            {searchActive
-              ? "No matching songs."
-              : "This playlist is empty."}
-          </Text>
-
-          {!searchActive && (
-            <Text style={styles.emptyText}>
-              Add songs using the ＋ button in your library.
-            </Text>
-          )}
-        </View>
-      }
     />
   );
 }
 
-const createStyles = (colors) => StyleSheet.create({
-  content: {
-    paddingBottom: 30,
-    flexGrow: 1,
-  },
+export default memo(DraggablePlaylistSongs);
 
-  row: {
-    flexDirection: "row",
-    alignItems: "center",
-    borderRadius: 12,
-  },
+const createStyles = (colors) =>
+  StyleSheet.create({
+    content: {
+      paddingBottom: 30,
+      flexGrow: 1,
+    },
 
-  activeRow: {
-    backgroundColor: colors.surfaceAlt,
-    elevation: 8,
-  },
+    row: {
+      flexDirection: "row",
+      alignItems: "center",
+      borderRadius: 12,
+    },
 
-  song: {
-    flex: 1,
-    minWidth: 0,
-  },
+    activeRow: {
+      backgroundColor: colors.surfaceAlt,
+      elevation: 8,
+    },
 
-  dragHandle: {
-    width: 32,
-    height: 52,
-    alignItems: "center",
-    justifyContent: "center",
-  },
+    song: {
+      flex: 1,
+      minWidth: 0,
+    },
 
-  disabledHandle: {
-    opacity: 0.3,
-  },
+    dragHandle: {
+      width: 32,
+      height: 52,
+      alignItems: "center",
+      justifyContent: "center",
+    },
 
-  dragIcon: {
-    color: colors.primary,
-    fontSize: 30,
-    fontWeight: "700",
-  },
+    disabledHandle: {
+      opacity: 0.3,
+    },
 
-  emptyContainer: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    padding: 30,
-    gap: 8,
-  },
+    dragIcon: {
+      color: colors.primary,
+      fontSize: 30,
+      fontWeight: "700",
+    },
 
-  emptyText: {
-    color: colors.muted,
-    textAlign: "center",
-  },
-});
+    emptyContainer: {
+      flex: 1,
+      justifyContent: "center",
+      alignItems: "center",
+      padding: 30,
+      gap: 8,
+    },
+
+    emptyText: {
+      color: colors.muted,
+      textAlign: "center",
+    },
+  });

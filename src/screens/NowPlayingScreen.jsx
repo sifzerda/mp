@@ -1,6 +1,7 @@
 // src/screens/NowPlayingScreen.jsx
 
-import { useMemo } from "react";
+import { memo, useCallback } from "react";
+
 import {
   View,
   Text,
@@ -8,67 +9,77 @@ import {
   StyleSheet,
 } from "react-native";
 
-import Slider from "@react-native-community/slider";
+import { useIsFocused } from "@react-navigation/native";
+import { useActiveTrack } from "react-native-track-player";
 
-import TrackPlayer, {
-  useActiveTrack,
-  useProgress,
-} from "react-native-track-player";
-
-import PlaybackControls from "../components/PlaybackControls";
+import PlayerControls from "../components/PlayerControls";
+import PlaybackProgress from "../components/PlaybackProgress";
 import AlbumArtwork from "../components/AlbumArtwork";
-import PlaybackModes from "../components/PlaybackModes";
-import PlaybackSpeed from "../components/PlaybackSpeed";
 
-
-
-import useMusicStore from "../store/useMusicStore";
-
+import useCurrentSong from "../hooks/useCurrentSong";
 import useFavoritesStore from "../store/useFavoritesStore";
 import useThemedStyles from "../theme/useThemedStyles";
 
-function formatTime(seconds) {
-  const total = Math.floor(Math.max(0, seconds || 0));
-  const minutes = Math.floor(total / 60);
-  const remaining = total % 60;
+const FavoriteButton = memo(function FavoriteButton({
+  songId,
+}) {
+  const { styles } = useThemedStyles(createStyles);
 
-  return `${minutes}:${String(remaining).padStart(2, "0")}`;
-}
+  const isFavorite = useFavoritesStore(
+    (s) => songId != null &&
+      s.favoriteIds.has(String(songId))
+  );
 
-export default function NowPlayingScreen({ navigation }) {
-  const { colors, styles } = useThemedStyles(createStyles);
+  const toggleFavorite = useFavoritesStore(
+    (s) => s.toggleFavorite
+  );
 
+  const handlePress = useCallback(() => {
+    if (songId == null) return;
 
+    toggleFavorite(songId).catch(console.error);
+  }, [songId, toggleFavorite]);
+
+  return (
+    <Pressable
+      onPress={handlePress}
+      disabled={songId == null}
+      accessibilityRole="button"
+      accessibilityLabel={
+        isFavorite
+          ? "Remove from favorites"
+          : "Add to favorites"
+      }
+      style={styles.favoriteButton}
+    >
+      <Text
+        style={[
+          styles.heart,
+          isFavorite && styles.activeHeart,
+        ]}
+      >
+        {isFavorite ? "♥" : "♡"}
+      </Text>
+    </Pressable>
+  );
+});
+
+function NowPlayingScreen({ navigation }) {
+  const { styles } = useThemedStyles(createStyles);
 
   const track = useActiveTrack();
-  const { position, duration } = useProgress(500);
-  const closePlayer = () => navigation.goBack();
-  const songs = useMusicStore((s) => s.songs);
-
-  const favorites = useFavoritesStore((s) => s.favorites);
-  const toggleFavorite = useFavoritesStore((s) => s.toggleFavorite);
-
-  const artworkSong = useMemo(() => {
-    if (!track) return null;
-
-    return (
-      songs.find(
-        (song) =>
-          String(song.id) === String(track.id) ||
-          song.uri === track.url
-      ) || track
-    );
-  }, [songs, track]);
+  const artworkSong = useCurrentSong(track);
+  const isFocused = useIsFocused();
 
   const songId = artworkSong?.id ?? track?.id;
 
-  const isFavorite =
-    songId != null && favorites.includes(String(songId));
+  const closePlayer = useCallback(() => {
+    navigation.goBack();
+  }, [navigation]);
 
-  const totalDuration = Math.max(
-    0,
-    duration || track?.duration || 0
-  );
+  const openQueue = useCallback(() => {
+    navigation.navigate("Queue");
+  }, [navigation]);
 
   if (!track) {
     return (
@@ -90,7 +101,6 @@ export default function NowPlayingScreen({ navigation }) {
         <Text style={styles.back}>‹ Library</Text>
       </Pressable>
 
-      {/* Album artwork */}
       <View style={styles.artworkContainer}>
         <AlbumArtwork
           song={artworkSong}
@@ -99,72 +109,27 @@ export default function NowPlayingScreen({ navigation }) {
         />
       </View>
 
-      {/* Song title and favorites */}
       <View style={styles.titleRow}>
         <Text style={styles.title} numberOfLines={2}>
           {track.title || "Unknown title"}
         </Text>
 
-        <Pressable
-          onPress={() =>
-            toggleFavorite(songId).catch(console.error)
-          }
-          accessibilityRole="button"
-          accessibilityLabel={
-            isFavorite
-              ? "Remove from favorites"
-              : "Add to favorites"
-          }
-          style={styles.favoriteButton}
-        >
-          <Text
-            style={[
-              styles.heart,
-              isFavorite && styles.activeHeart,
-            ]}
-          >
-            {isFavorite ? "♥" : "♡"}
-          </Text>
-        </Pressable>
+        <FavoriteButton songId={songId} />
       </View>
 
       <Text style={styles.artist}>
         {track.artist || "Unknown artist"}
       </Text>
 
-      {/* Playback progress */}
-      <View style={styles.progress}>
-        <Slider
-          minimumValue={0}
-          maximumValue={Math.max(totalDuration, 1)}
-          value={Math.min(
-            Math.max(position, 0),
-            Math.max(totalDuration, 1)
-          )}
-          minimumTrackTintColor={colors.primary}
-          maximumTrackTintColor={colors.sliderTrack}
-          thumbTintColor={colors.primary}
-          disabled={totalDuration <= 0}
-          onSlidingComplete={(value) =>
-            TrackPlayer.seekTo(value).catch(console.error)
-          }
-          accessibilityLabel="Playback position"
-        />
+      <PlaybackProgress
+        key={track.id}
+        trackId={track.id}
+        trackDuration={track.duration}
+        enabled={isFocused}
+      />
 
-        <View style={styles.times}>
-          <Text style={styles.time}>
-            {formatTime(position)}
-          </Text>
-
-          <Text style={styles.time}>
-            {formatTime(totalDuration)}
-          </Text>
-        </View>
-      </View>
-
-      {/* Playback queue */}
       <Pressable
-        onPress={() => navigation.navigate("Queue")}
+        onPress={openQueue}
         style={styles.queueButton}
         accessibilityRole="button"
         accessibilityLabel="Open playback queue"
@@ -174,12 +139,12 @@ export default function NowPlayingScreen({ navigation }) {
         </Text>
       </Pressable>
 
-      <PlaybackControls />
-      <PlaybackModes />
-      <PlaybackSpeed />
+      <PlayerControls />
     </View>
   );
 }
+
+export default memo(NowPlayingScreen);
 
 const createStyles = (colors) =>
   StyleSheet.create({
@@ -236,20 +201,6 @@ const createStyles = (colors) =>
 
     activeHeart: {
       color: colors.danger,
-    },
-
-    progress: {
-      marginVertical: 35,
-    },
-
-    times: {
-      flexDirection: "row",
-      justifyContent: "space-between",
-    },
-
-    time: {
-      color: colors.muted,
-      fontSize: 13,
     },
 
     queueButton: {

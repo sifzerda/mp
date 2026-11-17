@@ -1,43 +1,322 @@
 package expo.modules.musicartwork
 
+import android.content.Context
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import android.media.MediaMetadataRetriever
 import android.net.Uri
-import android.util.Base64
 import expo.modules.kotlin.modules.Module
 import expo.modules.kotlin.modules.ModuleDefinition
+import java.io.File
+import java.security.MessageDigest
+import kotlin.math.max
+import kotlin.math.roundToInt
 
 class MusicArtworkModule : Module() {
+
+  companion object {
+    private const val CACHE_DIRECTORY = "music_artwork_v2"
+
+    private const val MAX_CACHE_BYTES =
+      128L * 1024L * 1024L
+
+    private const val MAX_CACHE_FILES = 6000
+
+    private const val JPEG_QUALITY = 85
+
+    private const val PRUNE_INTERVAL = 60_000L
+
+    private val cacheLock = Any()
+
+    private var lastPruneTime = 0L
+  }
 
   override fun definition() = ModuleDefinition {
     Name("MusicArtwork")
 
-    AsyncFunction("getArtwork") { uri: String ->
-      val retriever = MediaMetadataRetriever()
+    AsyncFunction("getArtwork") {
+      uri: String, size: Int, version: String ->
 
-      try {
-        val context = requireNotNull(appContext.reactContext)
+      val context = requireNotNull(
+        appContext.reactContext
+      )
 
-        retriever.setDataSource(
-          context,
-          Uri.parse(uri)
+      extractArtwork(
+        context,
+        uri,
+        size.coerceIn(64, 1024),
+        version
+      )
+    }
+
+    AsyncFunction("clearCache") {
+      val context = requireNotNull(
+        appContext.reactContext
+      )
+
+      synchronized(cacheLock) {
+        getCacheDirectory(context).deleteRecursively()
+        lastPruneTime = 0L
+      }
+    }
+  }
+
+  private fun getCacheDirectory(
+    context: Context
+  ): File {
+    return File(
+      context.cacheDir,
+      CACHE_DIRECTORY
+    ).apply {
+      mkdirs()
+    }
+  }
+
+  private fun hash(value: String): String {
+    return MessageDigest
+      .getInstance("SHA-256")
+      .digest(value.toByteArray(Charsets.UTF_8))
+      .joinToString("") {
+        "%02x".format(it.toInt() and 0xff)
+      }
+  }
+
+  private fun extractArtwork(
+    context: Context,
+    uri: String,
+    size: Int,
+    version: String
+  ): String? {
+
+    val cacheDirectory = getCacheDirectory(context)
+
+    val cacheKey = hash("$uri|$size|$version")
+
+    val outputFile = File(
+      cacheDirectory,
+      "$cacheKey.jpg"
+    )
+
+    synchronized(cacheLock) {
+      if (
+        outputFile.isFile &&
+        outputFile.length() > 0L
+      ) {
+        outputFile.setLastModified(
+          System.currentTimeMillis()
         )
 
-        val artwork = retriever.embeddedPicture
+        return Uri.fromFile(outputFile).toString()
+      }
+    }
 
-        if (artwork == null) {
-          null
-        } else {
-          val base64 = Base64.encodeToString(
-            artwork,
-            Base64.NO_WRAP
-          )
+    val retriever = MediaMetadataRetriever()
 
-          "data:image/jpeg;base64,$base64"
+    var decodedBitmap: Bitmap? = null
+    var resizedBitmap: Bitmap? = null
+    var temporaryFile: File? = null
+
+    try {
+      retriever.setDataSource(
+        context,
+        Uri.parse(uri)
+      )
+
+      val artwork = retriever.embeddedPicture
+        ?: return null
+
+      // Read dimensions without decoding the image.
+      val bounds = BitmapFactory.Options().apply {
+        inJustDecodeBounds = true
+      }
+
+      BitmapFactory.decodeByteArray(
+        artwork,
+        0,
+        artwork.size,
+        bounds
+      )
+
+      if (
+        bounds.outWidth <= 0 ||
+        bounds.outHeight <= 0
+      ) {
+        return null
+      }
+
+      // Decode a smaller bitmap instead of
+      // allocating the original full-size image.
+      val options = BitmapFactory.Options().apply {
+        inSampleSize = calculateSampleSize(
+          bounds.outWidth,
+          bounds.outHeight,
+          size
+        )
+
+        inPreferredConfig = Bitmap.Config.ARGB_8888
+      }
+
+      val decoded = BitmapFactory.decodeByteArray(
+        artwork,
+        0,
+        artwork.size,
+        options
+      ) ?: return null
+
+      decodedBitmap = decoded
+
+      val resized = resizeBitmap(decoded, size)
+
+      resizedBitmap = resized
+
+      // Write to a temporary file first to prevent
+      // incomplete cache files from being returned.
+      val temp = File.createTempFile(
+        "artwork_",
+        ".tmp",
+        cacheDirectory
+      )
+
+      temporaryFile = temp
+
+      val success = temp.outputStream().use {
+        resized.compress(
+          Bitmap.CompressFormat.JPEG,
+          JPEG_QUALITY,
+          it
+        )
+      }
+
+      if (!success) return null
+
+      synchronized(cacheLock) {
+        if (!outputFile.exists()) {
+          if (!temp.renameTo(outputFile)) {
+            return null
+          }
         }
-      } catch (error: Exception) {
-        null
-      } finally {
+
+        outputFile.setLastModified(
+          System.currentTimeMillis()
+        )
+
+        pruneCache(cacheDirectory)
+      }
+
+      return Uri.fromFile(outputFile).toString()
+
+    } finally {
+      temporaryFile?.delete()
+
+      if (
+        resizedBitmap != null &&
+        resizedBitmap !== decodedBitmap
+      ) {
+        resizedBitmap.recycle()
+      }
+
+      decodedBitmap?.recycle()
+
+      runCatching {
         retriever.release()
+      }
+    }
+  }
+
+  private fun calculateSampleSize(
+    width: Int,
+    height: Int,
+    targetSize: Int
+  ): Int {
+
+    val largestDimension = max(width, height)
+
+    var sampleSize = 1
+
+    while (
+      largestDimension / (sampleSize * 2) >=
+      targetSize
+    ) {
+      sampleSize *= 2
+    }
+
+    return sampleSize
+  }
+
+  private fun resizeBitmap(
+    bitmap: Bitmap,
+    targetSize: Int
+  ): Bitmap {
+
+    val largestDimension = max(
+      bitmap.width,
+      bitmap.height
+    )
+
+    if (largestDimension <= targetSize) {
+      return bitmap
+    }
+
+    val scale = targetSize.toFloat() /
+      largestDimension.toFloat()
+
+    val width = max(
+      1,
+      (bitmap.width * scale).roundToInt()
+    )
+
+    val height = max(
+      1,
+      (bitmap.height * scale).roundToInt()
+    )
+
+    return Bitmap.createScaledBitmap(
+      bitmap,
+      width,
+      height,
+      true
+    )
+  }
+
+  private fun pruneCache(
+    directory: File
+  ) {
+    val now = System.currentTimeMillis()
+
+    if (now - lastPruneTime < PRUNE_INTERVAL) {
+      return
+    }
+
+    lastPruneTime = now
+
+    val files = directory.listFiles()
+      ?.filter {
+        it.isFile && it.extension == "jpg"
+      }
+      ?.sortedBy {
+        it.lastModified()
+      }
+      ?: return
+
+    var totalBytes = files.sumOf {
+      it.length()
+    }
+
+    var totalFiles = files.size
+
+    for (file in files) {
+      if (
+        totalBytes <= MAX_CACHE_BYTES &&
+        totalFiles <= MAX_CACHE_FILES
+      ) {
+        break
+      }
+
+      val length = file.length()
+
+      if (file.delete()) {
+        totalBytes -= length
+        totalFiles--
       }
     }
   }

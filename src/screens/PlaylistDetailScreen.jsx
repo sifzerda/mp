@@ -1,6 +1,12 @@
 // src/screens/PlaylistDetailScreen.jsx
 
-import { useCallback, useMemo, useState } from "react";
+import {
+  memo,
+  useCallback,
+  useDeferredValue,
+  useMemo,
+  useState,
+} from "react";
 
 import {
   Text,
@@ -22,37 +28,60 @@ import useMusicStore from "../store/useMusicStore";
 import useSongActions from "../hooks/useSongActions";
 import useThemedStyles from "../theme/useThemedStyles";
 
-import { filterSongs } from "../utils/musicCollections";
+import {
+  filterSongs,
+  EMPTY_SONG_IDS,
+  resolvePlaylistSongs,
+} from "../utils/musicUtils";
 
-export default function PlaylistDetailScreen({ route }) {
+function PlaylistDetailScreen({ route }) {
   const { playlistId } = route.params;
 
   const { colors, styles } =
     useThemedStyles(createStyles);
 
   const [search, setSearch] = useState("");
+  const deferredSearch = useDeferredValue(search);
 
   const songsById = useMusicStore(
     (s) => s.libraryIndex.songsById
   );
 
-  const playlist = usePlaylistStore((s) =>
-    s.playlists.find(
-      (item) => item.id === playlistId
-    )
+  const playlist = usePlaylistStore(
+    (s) => s.playlistsById.get(playlistId)
   );
 
-  const removeSong = usePlaylistStore((s) => s.removeSong);
+  const removeSong = usePlaylistStore(
+    (s) => s.removeSong
+  );
 
-  const playlistSongs = useMemo(() => {
-    if (!playlist) return [];
+  const songIds =
+    playlist?.songIds ?? EMPTY_SONG_IDS;
 
-    return playlist.songIds
-      .map((id) => songsById.get(String(id)))
-      .filter(Boolean);
-  }, [songsById, playlist]);
+  const playlistName = playlist?.name;
 
-  const items = useMemo(() => filterSongs(playlistSongs, search), [playlistSongs, search]);
+  const playlistSongs = useMemo(
+    () =>
+      resolvePlaylistSongs(
+        songIds,
+        songsById
+      ),
+    [songIds, songsById]
+  );
+
+  const items = useMemo(
+    () =>
+      filterSongs(
+        playlistSongs,
+        deferredSearch
+      ),
+    [playlistSongs, deferredSearch]
+  );
+
+  const searchActive =
+    search.trim().length > 0 ||
+    deferredSearch.trim().length > 0 ||
+    playlistSongs.length !== songIds.length;
 
   const {
     pickerSong,
@@ -63,13 +92,19 @@ export default function PlaylistDetailScreen({ route }) {
     handleAddToQueue,
   } = useSongActions(playlistSongs);
 
+  const handlePlayPlaylist = useCallback(() => {
+    if (playlistSongs.length) {
+      handlePlaySong(playlistSongs[0]);
+    }
+  }, [playlistSongs, handlePlaySong]);
+
   const handleRemoveSong = useCallback(
     (song) => {
-      if (!playlist) return;
+      if (!playlistName) return;
 
       Alert.alert(
         "Remove song?",
-        `Remove "${song.title}" from "${playlist.name}"?`,
+        `Remove "${song.title}" from "${playlistName}"?`,
         [
           {
             text: "Cancel",
@@ -81,13 +116,13 @@ export default function PlaylistDetailScreen({ route }) {
             onPress: async () => {
               try {
                 await removeSong(
-                  playlist.id,
+                  playlistId,
                   song.id
                 );
-              } catch (error) {
+              } catch {
                 Alert.alert(
                   "Error",
-                  "Unable to remove song from playlist."
+                  "Unable to save playlist changes."
                 );
               }
             },
@@ -95,7 +130,11 @@ export default function PlaylistDetailScreen({ route }) {
         ]
       );
     },
-    [playlist, removeSong]
+    [
+      playlistId,
+      playlistName,
+      removeSong,
+    ]
   );
 
   if (!playlist) {
@@ -122,9 +161,7 @@ export default function PlaylistDetailScreen({ route }) {
       {playlistSongs.length > 0 && (
         <Pressable
           style={styles.playButton}
-          onPress={() =>
-            handlePlaySong(playlistSongs[0])
-          }
+          onPress={handlePlayPlaylist}
           accessibilityRole="button"
           accessibilityLabel="Play playlist"
         >
@@ -153,10 +190,7 @@ export default function PlaylistDetailScreen({ route }) {
         onRemoveSong={handleRemoveSong}
         onPlayNext={handlePlayNext}
         onAddToQueue={handleAddToQueue}
-        searchActive={
-          search.trim().length > 0 ||
-          playlistSongs.length !== playlist.songIds.length
-        }
+        searchActive={searchActive}
       />
 
       <PlaylistPicker
@@ -167,6 +201,8 @@ export default function PlaylistDetailScreen({ route }) {
     </LibraryLayout>
   );
 }
+
+export default memo(PlaylistDetailScreen);
 
 const createStyles = (colors) =>
   StyleSheet.create({

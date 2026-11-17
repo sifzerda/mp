@@ -24,7 +24,6 @@
     "expo": "~58.0.25",
     "expo-image": "~58.0.18",
     "expo-media-library": "~58.0.14",
-    "expo-status-bar": "~58.0.5",
     "lucide-react-native": "^1.73.0",
     "music-artwork": "file:./modules/music-artwork",
     "react": "19.3.0",

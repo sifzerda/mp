@@ -1,154 +1,169 @@
 // src/navigation/LibraryTabBar.jsx
 
-import {
-    View,
-    Text,
-    Pressable,
-    StyleSheet,
-} from "react-native";
+import { memo, useCallback } from "react";
 
 import {
-    Music,
-    Users,
-    Disc3,
-    Heart,
-    ListMusic,
+  View,
+  Text,
+  Pressable,
+  StyleSheet,
+} from "react-native";
+
+import { useIsFocused } from "@react-navigation/native";
+
+import {
+  Music,
+  Users,
+  Disc3,
+  Heart,
+  ListMusic,
 } from "lucide-react-native";
 
 import MiniPlayer from "../components/MiniPlayer";
 import useThemedStyles from "../theme/useThemedStyles";
 
 const ICONS = {
-    Songs: Music,
-    Artists: Users,
-    Albums: Disc3,
-    Favorites: Heart,
-    Playlists: ListMusic,
+  Songs: Music,
+  Artists: Users,
+  Albums: Disc3,
+  Favorites: Heart,
+  Playlists: ListMusic,
 };
 
-export default function LibraryTabBar({
-    state,
-    descriptors,
-    navigation,
+const LibraryTab = memo(function LibraryTab({
+  route,
+  label,
+  focused,
+  navigation,
 }) {
-    const { colors, styles } =
-        useThemedStyles(createStyles);
+  const { colors, styles } =
+    useThemedStyles(createStyles);
 
-    return (
-        <View style={styles.container}>
-            <MiniPlayer
-                onOpenPlayer={() =>
-                    navigation.navigate("NowPlaying")
-                }
-            />
+  const Icon = ICONS[route.name] || Music;
 
-            <View style={styles.tabBar}>
-                {state.routes.map((route, index) => {
-                    const { options } =
-                        descriptors[route.key];
+  const color = focused
+    ? colors.primary
+    : colors.muted;
 
-                    const focused = state.index === index;
+  const onPress = useCallback(() => {
+    const event = navigation.emit({
+      type: "tabPress",
+      target: route.key,
+      canPreventDefault: true,
+    });
 
-                    const Icon = ICONS[route.name] || Music;
+    if (!focused && !event.defaultPrevented) {
+      navigation.navigate(
+        route.name,
+        route.params
+      );
+    }
+  }, [navigation, route, focused]);
 
-                    const color = focused
-                        ? colors.primary
-                        : colors.muted;
+  const onLongPress = useCallback(() => {
+    navigation.emit({
+      type: "tabLongPress",
+      target: route.key,
+    });
+  }, [navigation, route.key]);
 
-                    const label =
-                        options.title || route.name;
+  return (
+    <Pressable
+      onPress={onPress}
+      onLongPress={onLongPress}
+      accessibilityRole="tab"
+      accessibilityState={{ selected: focused }}
+      style={styles.tab}
+    >
+      {focused && (
+        <View style={styles.indicator} />
+      )}
 
-                    const onPress = () => {
-                        const event = navigation.emit({
-                            type: "tabPress",
-                            target: route.key,
-                            canPreventDefault: true,
-                        });
+      <Icon
+        color={color}
+        size={23}
+        strokeWidth={focused ? 2.5 : 1.8}
+      />
 
-                        if (!focused && !event.defaultPrevented) {
-                            navigation.navigate(
-                                route.name,
-                                route.params
-                            );
-                        }
-                    };
+      <Text style={[styles.label, { color }]}>
+        {label}
+      </Text>
+    </Pressable>
+  );
+});
 
-                    const onLongPress = () => {
-                        navigation.emit({
-                            type: "tabLongPress",
-                            target: route.key,
-                        });
-                    };
+function LibraryTabBar({
+  state,
+  descriptors,
+  navigation,
+}) {
+  const { styles } = useThemedStyles(createStyles);
 
-                    return (
-                        <Pressable
-                            key={route.key}
-                            onPress={onPress}
-                            onLongPress={onLongPress}
-                            accessibilityRole="tab"
-                            accessibilityState={{
-                                selected: focused,
-                            }}
-                            style={styles.tab}
-                        >
-                            {focused && (
-                                <View style={styles.indicator} />
-                            )}
+  const isFocused = useIsFocused();
 
-                            <Icon
-                                color={color}
-                                size={23}
-                                strokeWidth={focused ? 2.5 : 1.8}
-                            />
+  const openPlayer = useCallback(() => {
+    navigation.navigate("NowPlaying");
+  }, [navigation]);
 
-                            <Text
-                                style={[
-                                    styles.label,
-                                    { color },
-                                ]}
-                            >
-                                {label}
-                            </Text>
-                        </Pressable>
-                    );
-                })}
-            </View>
-        </View>
-    );
+  return (
+    <View style={styles.container}>
+      <MiniPlayer
+        onOpenPlayer={openPlayer}
+        enabled={isFocused}
+      />
+
+      <View style={styles.tabBar}>
+        {state.routes.map((route, index) => (
+          <LibraryTab
+            key={route.key}
+            route={route}
+            label={
+              descriptors[route.key].options.title ||
+              route.name
+            }
+            focused={state.index === index}
+            navigation={navigation}
+          />
+        ))}
+      </View>
+    </View>
+  );
 }
 
+export default memo(LibraryTabBar);
+
 const createStyles = (colors) =>
-    StyleSheet.create({
-        container: {
-            backgroundColor: colors.surface,
-        },
+  StyleSheet.create({
+    container: {
+      backgroundColor: colors.surface,
+    },
 
-        tabBar: {
-            flexDirection: "row",
-            borderTopWidth: 1,
-            borderTopColor: colors.border,
-            paddingVertical: 8,
-        },
+    tabBar: {
+      flexDirection: "row",
+      borderTopWidth: 1,
+      borderTopColor: colors.border,
+      paddingVertical: 8,
+    },
 
-        tab: {
-            flex: 1,
-            minHeight: 52,
-            alignItems: "center",
-            justifyContent: "center",
-            gap: 5,
-        },
+    tab: {
+      flex: 1,
+      minHeight: 52,
+      alignItems: "center",
+      justifyContent: "center",
+      gap: 5,
+    },
 
-        label: {
-            fontSize: 11,
-            fontWeight: "600",
-        },
+    label: {
+      fontSize: 11,
+      fontWeight: "600",
+    },
 
-        indicator: {
-            position: "absolute",
-            top: -8,
-            width: 30,
-            height: 3,
-            borderRadius: 3,
-            backgroundColor: colors.primary,
-        },
-    });
+    indicator: {
+      position: "absolute",
+      top: -8,
+      width: 30,
+      height: 3,
+      borderRadius: 3,
+      backgroundColor: colors.primary,
+    },
+  });

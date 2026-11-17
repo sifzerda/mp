@@ -1,9 +1,0 @@
-expo.modules.musicartwork.music-artwork-pngs-0 C:\mp\modules\music-artwork\android\build\generated\res\pngs\debug
-expo.modules.musicartwork.music-artwork-updated_navigation_xml-1 C:\mp\modules\music-artwork\android\build\generated\updated_navigation_xml\debug
-expo.modules.musicartwork.music-artwork-mergeDebugResources-2 C:\mp\modules\music-artwork\android\build\intermediates\incremental\debug\mergeDebugResources\merged.dir
-expo.modules.musicartwork.music-artwork-mergeDebugResources-3 C:\mp\modules\music-artwork\android\build\intermediates\incremental\debug\mergeDebugResources\stripped.dir
-expo.modules.musicartwork.music-artwork-debug-4 C:\mp\modules\music-artwork\android\build\intermediates\merged_res\debug\mergeDebugResources
-expo.modules.musicartwork.music-artwork-debug-5 C:\mp\modules\music-artwork\android\build\intermediates\packaged_res\debug\packageDebugResources
-expo.modules.musicartwork.music-artwork-debug-6 C:\mp\modules\music-artwork\android\src\debug\res
-expo.modules.musicartwork.music-artwork-main-7 C:\mp\modules\music-artwork\android\src\main\res
-gradleHome-0 C:\Users\tydam\.gradle

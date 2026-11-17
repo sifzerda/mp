@@ -52,13 +52,9 @@ const FavoriteButton = memo(function FavoriteButton({
   songId,
   styles,
 }) {
-  const isFavorite = useFavoritesStore((s) =>
-    hasFavorite(s.favorites, songId)
-  );
 
-  const toggleFavorite = useFavoritesStore(
-    (s) => s.toggleFavorite
-  );
+  const isFavorite = useFavoritesStore((s) => s.favoriteIds.has(String(songId)));
+  const toggleFavorite = useFavoritesStore((s) => s.toggleFavorite);
 
   const handlePress = useCallback(() => {
     toggleFavorite(songId).catch(console.error);

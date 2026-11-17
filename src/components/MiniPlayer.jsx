@@ -1,6 +1,6 @@
 // src/components/MiniPlayer.jsx 
 
-import { useMemo, useState } from "react";
+import { memo } from "react";
 
 import {
   View,
@@ -8,13 +8,10 @@ import {
   Pressable,
   StyleSheet,
 } from "react-native";
-import { useNavigation } from "@react-navigation/native";
-import Slider from "@react-native-community/slider";
 
-import TrackPlayer, {
+import {
   useActiveTrack,
   usePlaybackState,
-  useProgress,
   State,
 } from "react-native-track-player";
 
@@ -24,80 +21,59 @@ import {
 } from "../services/audioService";
 
 import AlbumArtwork from "./AlbumArtwork";
+import PlaybackProgress from "./PlaybackProgress";
 
-import useMusicStore from "../store/useMusicStore";
+import useCurrentSong from "../hooks/useCurrentSong";
+import usePlaybackAction from "../hooks/usePlaybackAction";
 import useThemedStyles from "../theme/useThemedStyles";
 
-function formatTime(seconds) {
-  const total = Math.floor(Math.max(0, seconds || 0));
-  const minutes = Math.floor(total / 60);
-  const remaining = total % 60;
+const MiniPlayerControls = memo(
+  function MiniPlayerControls() {
+    const { styles } = useThemedStyles(createStyles);
 
-  return `${minutes}:${String(remaining).padStart(2, "0")}`;
-}
+    const { state } = usePlaybackState();
+    const { busy, runAction } = usePlaybackAction();
 
-export default function MiniPlayer({}) {
-  const { colors, styles } = useThemedStyles(createStyles);
-
-  const track = useActiveTrack();
-  const playback = usePlaybackState();
-  const { position, duration } = useProgress(500);
-
-  const songs = useMusicStore((s) => s.songs);
-  const navigation = useNavigation();
-
-  const openPlayer = () =>
-    navigation.navigate("NowPlaying");
-
-  const [isSeeking, setIsSeeking] = useState(false);
-  const [seekPosition, setSeekPosition] = useState(0);
-
-  const artworkSong = useMemo(() => {
-    if (!track) return null;
+    const isPlaying = state === State.Playing;
 
     return (
-      songs.find(
-        (song) =>
-          String(song.id) === String(track.id) ||
-          song.uri === track.url
-      ) || track
+      <>
+        <Pressable
+          onPress={() => runAction(togglePlayback)}
+          disabled={busy}
+          style={styles.button}
+          accessibilityRole="button"
+          accessibilityLabel={isPlaying ? "Pause" : "Play"}
+        >
+          <Text style={styles.icon}>
+            {isPlaying ? "⏸" : "▶"}
+          </Text>
+        </Pressable>
+
+        <Pressable
+          onPress={() => runAction(nextTrack)}
+          disabled={busy}
+          style={styles.button}
+          accessibilityRole="button"
+          accessibilityLabel="Next track"
+        >
+          <Text style={styles.icon}>⏭</Text>
+        </Pressable>
+      </>
     );
-  }, [songs, track]);
+  }
+);
+
+function MiniPlayer({
+  onOpenPlayer,
+  enabled = true,
+}) {
+  const { styles } = useThemedStyles(createStyles);
+
+  const track = useActiveTrack();
+  const artworkSong = useCurrentSong(track);
 
   if (!track) return null;
-
-  const isPlaying = playback.state === State.Playing;
-
-  const totalDuration = Math.max(
-    0,
-    duration || track.duration || 0
-  );
-
-  const sliderMaximum = Math.max(totalDuration, 1);
-
-  const currentPosition = isSeeking
-    ? seekPosition
-    : position;
-
-  const sliderValue = Math.min(
-    Math.max(currentPosition, 0),
-    sliderMaximum
-  );
-
-  const handleSeekStart = () => {
-    setSeekPosition(position);
-    setIsSeeking(true);
-  };
-
-  const handleSeekComplete = async (value) => {
-    try {
-      await TrackPlayer.seekTo(value);
-    } catch (error) {
-      console.warn("Mini-player seek failed:", error);
-    } finally {
-      setIsSeeking(false);
-    }
-  };
 
   return (
     <View style={styles.container}>
@@ -125,55 +101,21 @@ export default function MiniPlayer({}) {
           </View>
         </Pressable>
 
-        <Pressable
-          onPress={togglePlayback}
-          style={styles.button}
-          accessibilityRole="button"
-          accessibilityLabel={isPlaying ? "Pause" : "Play"}
-        >
-          <Text style={styles.icon}>
-            {isPlaying ? "⏸" : "▶"}
-          </Text>
-        </Pressable>
-
-        <Pressable
-          onPress={nextTrack}
-          style={styles.button}
-          accessibilityRole="button"
-          accessibilityLabel="Next track"
-        >
-          <Text style={styles.icon}>⏭</Text>
-        </Pressable>
+        <MiniPlayerControls />
       </View>
 
-      <Slider
-        style={styles.slider}
-        minimumValue={0}
-        maximumValue={sliderMaximum}
-        value={sliderValue}
-        minimumTrackTintColor={colors.primary}
-        maximumTrackTintColor={colors.sliderTrack}
-        thumbTintColor={colors.primary}
-        disabled={totalDuration <= 0}
-        onSlidingStart={handleSeekStart}
-        onValueChange={(value) => {
-          if (isSeeking) setSeekPosition(value);
-        }}
-        onSlidingComplete={handleSeekComplete}
+      <PlaybackProgress
+        key={track.id}
+        trackId={track.id}
+        trackDuration={track.duration}
+        enabled={enabled}
+        compact
       />
-
-      <View style={styles.times}>
-        <Text style={styles.time}>
-          {formatTime(currentPosition)}
-        </Text>
-
-        <Text style={styles.time}>
-          {formatTime(totalDuration)}
-        </Text>
-      </View>
     </View>
   );
 }
+
+export default memo(MiniPlayer);
 
 const createStyles = (colors) =>
   StyleSheet.create({
@@ -224,23 +166,5 @@ const createStyles = (colors) =>
     icon: {
       color: colors.primary,
       fontSize: 25,
-    },
-
-    slider: {
-      width: "100%",
-      height: 30,
-      marginTop: 4,
-    },
-
-    times: {
-      flexDirection: "row",
-      justifyContent: "space-between",
-      paddingHorizontal: 4,
-      marginTop: -3,
-    },
-
-    time: {
-      color: colors.muted,
-      fontSize: 11,
     },
   });

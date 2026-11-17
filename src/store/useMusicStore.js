@@ -9,7 +9,7 @@ import {
 
 import {
   getLibraryIndex,
-} from "../utils/musicCollections";
+} from "../utils/musicUtils";
 
 /* -------------------- HELPERS -------------------- */
 
@@ -29,14 +29,7 @@ function shallowEqual(a, b) {
   );
 }
 
-function reconcileSongs(previous, incoming) {
-  const previousById = new Map(
-    previous.map((song) => [
-      String(song.id),
-      song,
-    ])
-  );
-
+function reconcileSongs(previous, incoming, previousById) {
   let changed = previous.length !== incoming.length;
 
   const songs = incoming.map((song, index) => {
@@ -62,6 +55,7 @@ function reconcileSongs(previous, incoming) {
 /* -------------------- INITIAL STATE -------------------- */
 
 const initialSongs = [];
+let loadPromise;
 
 /* -------------------- STORE -------------------- */
 
@@ -73,49 +67,56 @@ const useMusicStore = create((set, get) => ({
   permissionGranted: null,
   error: null,
 
-  loadSongs: async () => {
-    if (get().loading) return;
+  loadSongs: () => {
+    if (loadPromise) return loadPromise;
 
     set({
       loading: true,
       error: null,
     });
 
-    try {
-      const granted = await requestMusicPermission();
+    loadPromise = (async () => {
+      try {
+        const granted = await requestMusicPermission();
 
-      if (!granted) {
+        if (!granted) {
+          set({
+            songs: initialSongs,
+            libraryIndex: getLibraryIndex(initialSongs),
+            permissionGranted: false,
+          });
+
+          return;
+        }
+
+        const incoming = await getLocalSongs();
+
+        const songs = reconcileSongs(
+          get().songs,
+          incoming,
+          get().libraryIndex.songsById
+        );
+
+        if (songs !== get().songs) {
+          set({
+            songs,
+            libraryIndex: getLibraryIndex(songs),
+          });
+        }
+
+        set({ permissionGranted: true });
+      } catch (error) {
         set({
-          songs: initialSongs,
-          libraryIndex: getLibraryIndex(initialSongs),
-          permissionGranted: false,
+          error:
+            error?.message || "Unable to load music",
         });
-
-        return;
+      } finally {
+        loadPromise = null;
+        set({ loading: false });
       }
+    })();
 
-      const incoming = await getLocalSongs();
-
-      const songs = reconcileSongs(
-        get().songs,
-        incoming
-      );
-
-      set({
-        songs,
-        libraryIndex: getLibraryIndex(songs),
-        permissionGranted: true,
-      });
-    } catch (error) {
-      set({
-        error:
-          error?.message || "Unable to load music",
-      });
-    } finally {
-      set({
-        loading: false,
-      });
-    }
+    return loadPromise;
   },
 }));
 

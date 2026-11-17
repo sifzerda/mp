@@ -23,13 +23,11 @@ import LibraryEmptyState from "./LibraryEmptyState";
 import useMusicStore from "../store/useMusicStore";
 import useSongActions from "../hooks/useSongActions";
 
-import { filterSongs } from "../utils/musicCollections";
-
-/* -------------------- LIST HELPERS -------------------- */
+import { filterSongs } from "../utils/musicUtils";
 
 const keyExtractor = (item) => String(item.id);
 
-/* -------------------- MEMOIZED ROW -------------------- */
+/* -------------------- SONG ROW -------------------- */
 
 const SongRow = memo(function SongRow({
   song,
@@ -163,8 +161,6 @@ function SongList({
 }
 
 export default memo(SongList);
-
-/* -------------------- STYLES -------------------- */
 
 const styles = StyleSheet.create({
   container: {

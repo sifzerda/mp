@@ -1,16 +1,26 @@
 // src/store/useFavoritesStore.js
 
 import { create } from "zustand";
-import AsyncStorage from "@react-native-async-storage/async-storage";
+
+import {
+  readJSON,
+  writeJSON,
+} from "../services/storageService";
+
+import {
+  normalizeSongIds,
+} from "../utils/musicUtils";
 
 const STORAGE_KEY = "music-player-favorites-v1";
 
 let loadPromise = null;
-let saveQueue = Promise.resolve();
 
 const useFavoritesStore = create((set, get) => ({
   favorites: [],
+  favoriteIds: new Set(),
+
   loaded: false,
+  error: null,
 
   loadFavorites: async () => {
     if (get().loaded) return;
@@ -18,18 +28,26 @@ const useFavoritesStore = create((set, get) => ({
 
     loadPromise = (async () => {
       try {
-        const saved = await AsyncStorage.getItem(STORAGE_KEY);
-        const parsed = saved ? JSON.parse(saved) : [];
+        const saved = await readJSON(STORAGE_KEY, []);
+
+        if (!Array.isArray(saved)) {
+          throw new Error("Invalid favorites data.");
+        }
+
+        const favorites = normalizeSongIds(saved);
 
         set({
-          favorites: Array.isArray(parsed)
-            ? [...new Set(parsed.map(String))]
-            : [],
+          favorites,
+          favoriteIds: new Set(favorites),
           loaded: true,
+          error: null,
         });
       } catch (error) {
-        console.error("Failed to load favorites:", error);
-        set({ loaded: true });
+        set({
+          error: error.message,
+        });
+
+        throw error;
       }
     })();
 
@@ -41,35 +59,50 @@ const useFavoritesStore = create((set, get) => ({
   },
 
   toggleFavorite: async (songId) => {
+    if (songId == null) return;
+
     await get().loadFavorites();
 
     const id = String(songId);
 
-    const current = get().favorites;
+    const {
+      favorites: current,
+      favoriteIds: currentIds,
+    } = get();
 
-    const favorites = current.includes(id)
-      ? current.filter((item) => item !== id)
-      : [...current, id];
+    const favoriteIds = new Set(currentIds);
 
-    set({ favorites });
+    let favorites;
 
-    const save = saveQueue.then(() =>
-      AsyncStorage.setItem(
-        STORAGE_KEY,
-        JSON.stringify(get().favorites)
-      )
-    );
+    if (favoriteIds.has(id)) {
+      favoriteIds.delete(id);
 
-    saveQueue = save.catch((error) => {
-      console.error("Failed to save favorites:", error);
+      favorites = current.filter(
+        (item) => item !== id
+      );
+    } else {
+      favoriteIds.add(id);
+
+      favorites = [...current, id];
+    }
+
+    set({
+      favorites,
+      favoriteIds,
+      error: null,
     });
 
-    await save;
+    try {
+      await writeJSON(STORAGE_KEY, favorites);
+    } catch (error) {
+      set({ error: error.message });
+
+      throw error;
+    }
   },
 
   isFavorite: (songId) =>
-    get().favorites.includes(String(songId)),
+    get().favoriteIds.has(String(songId)),
 }));
 
 export default useFavoritesStore;
-

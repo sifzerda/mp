@@ -1,137 +1,258 @@
 // src/components/PlaylistManager.jsx
 
-import { useState } from "react";
-import { View, Text, TextInput, Pressable, FlatList, Alert, StyleSheet } from "react-native";
+import {
+  memo,
+  useCallback,
+  useState,
+  useRef,
+} from "react";
+
+import {
+  View,
+  Text,
+  TextInput,
+  Pressable,
+  FlatList,
+  Alert,
+  StyleSheet,
+} from "react-native";
+
 import usePlaylistStore from "../store/usePlaylistStore";
 import useThemedStyles from "../theme/useThemedStyles";
 
-export default function PlaylistManager({ onSelect }) {
-    const playlists = usePlaylistStore((s) => s.playlists);
-    const createPlaylist = usePlaylistStore((s) => s.createPlaylist);
-    const renamePlaylist = usePlaylistStore((s) => s.renamePlaylist);
-    const deletePlaylist = usePlaylistStore((s) => s.deletePlaylist);
-    const { colors, styles } = useThemedStyles(createStyles);
-    const [name, setName] = useState("");
+const keyExtractor = (item) => item.id;
 
-    const handleCreate = async () => {
-        if (!name.trim()) return;
+const CreatePlaylist = memo(function CreatePlaylist() {
+  const { colors, styles } =
+    useThemedStyles(createStyles);
 
-        try {
-            await createPlaylist(name);
-            setName("");
-        } catch {
-            Alert.alert("Error", "Unable to create playlist.");
-        }
-    };
+  const createPlaylist = usePlaylistStore(
+    (s) => s.createPlaylist
+  );
 
-    const handleRename = (playlist) => {
-        // Rename input is shown in the screen, avoiding
-        // Alert.prompt, which is unavailable on Android.
-        setEditingId(playlist.id);
-        setEditingName(playlist.name);
-    };
+  const [name, setName] = useState("");
+  const busy = useRef(false);
 
-    const [editingId, setEditingId] = useState(null);
-    const [editingName, setEditingName] = useState("");
+  async function handleCreate() {
+    if (!name.trim() || busy.current) return;
 
-    const saveRename = async () => {
-        if (!editingName.trim()) return;
+    busy.current = true;
 
-        try {
-            await renamePlaylist(editingId, editingName);
-            setEditingId(null);
-            setEditingName("");
-        } catch {
-            Alert.alert("Error", "Unable to rename playlist.");
-        }
-    };
+    try {
+      await createPlaylist(name);
 
-    const confirmDelete = (playlist) => {
-        Alert.alert(
-            "Delete playlist?",
-            `Delete "${playlist.name}"? Your music files will not be deleted.`,
-            [
-                { text: "Cancel", style: "cancel" },
-                {
-                    text: "Delete",
-                    style: "destructive",
-                    onPress: () => deletePlaylist(playlist.id),
-                },
-            ]
-        );
-    };
+      setName((current) =>
+        current === name ? "" : current
+      );
+    } catch {
+      Alert.alert(
+        "Error",
+        "Unable to save playlist."
+      );
+    } finally {
+      busy.current = false;
+    }
+  }
 
-    return (
-        <View style={styles.container}>
-            <View style={styles.createRow}>
-                <TextInput
-                    style={styles.input}
-                    value={name}
-                    onChangeText={setName}
-                    placeholder="New playlist name"
-                    placeholderTextColor={colors.muted}
-                    onSubmitEditing={handleCreate}
-                />
+  return (
+    <View style={styles.createRow}>
+      <TextInput
+        style={styles.input}
+        value={name}
+        onChangeText={setName}
+        placeholder="New playlist name"
+        placeholderTextColor={colors.muted}
+        onSubmitEditing={handleCreate}
+      />
 
-                <Pressable style={styles.create} onPress={handleCreate}>
-                    <Text style={styles.createText}>Create</Text>
-                </Pressable>
-            </View>
+      <Pressable
+        style={styles.create}
+        onPress={handleCreate}
+      >
+        <Text style={styles.createText}>
+          Create
+        </Text>
+      </Pressable>
+    </View>
+  );
+});
 
-            <FlatList
-                data={playlists}
-                keyExtractor={(item) => item.id}
-                renderItem={({ item }) => (
-                    <View style={styles.playlist}>
-                        {editingId === item.id ? (
-                            <View style={styles.editRow}>
-                                <TextInput
-                                    style={styles.input}
-                                    value={editingName}
-                                    onChangeText={setEditingName}
-                                    autoFocus
-                                />
+const PlaylistRow = memo(function PlaylistRow({
+  playlist,
+  onSelect,
+}) {
+  const { styles } = useThemedStyles(createStyles);
 
-                                <Pressable onPress={saveRename}>
-                                    <Text style={styles.action}>Save</Text>
-                                </Pressable>
+  const renamePlaylist = usePlaylistStore(
+    (s) => s.renamePlaylist
+  );
 
-                                <Pressable onPress={() => setEditingId(null)}>
-                                    <Text style={styles.action}>Cancel</Text>
-                                </Pressable>
-                            </View>
-                        ) : (
-                            <>
-                                <Pressable
-                                    style={styles.playlistName}
-                                    onPress={() => onSelect(item)}
-                                >
-                                    <Text style={styles.name}>{item.name}</Text>
-                                    <Text style={styles.count}>
-                                        {item.songIds.length} songs
-                                    </Text>
-                                </Pressable>
+  const deletePlaylist = usePlaylistStore(
+    (s) => s.deletePlaylist
+  );
 
-                                <Pressable onPress={() => handleRename(item)}>
-                                    <Text style={styles.action}>Rename</Text>
-                                </Pressable>
+  const [editing, setEditing] = useState(false);
+  const [name, setName] = useState("");
 
-                                <Pressable onPress={() => confirmDelete(item)}>
-                                    <Text style={styles.delete}>Delete</Text>
-                                </Pressable>
-                            </>
-                        )}
-                    </View>
-                )}
-                ListEmptyComponent={
-                    <Text style={styles.empty}>
-                        No playlists created yet.
-                    </Text>
-                }
-            />
-        </View>
+  const busy = useRef(false);
+
+  function startEditing() {
+    setName(playlist.name);
+    setEditing(true);
+  }
+
+  async function saveRename() {
+    if (!name.trim() || busy.current) return;
+
+    busy.current = true;
+
+    try {
+      await renamePlaylist(playlist.id, name);
+      setEditing(false);
+    } catch {
+      Alert.alert(
+        "Error",
+        "Unable to save playlist name."
+      );
+    } finally {
+      busy.current = false;
+    }
+  }
+
+  function confirmDelete() {
+    Alert.alert(
+      "Delete playlist?",
+      `Delete "${playlist.name}"? Your music files will not be deleted.`,
+      [
+        {
+          text: "Cancel",
+          style: "cancel",
+        },
+        {
+          text: "Delete",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              await deletePlaylist(playlist.id);
+            } catch {
+              Alert.alert(
+                "Error",
+                "Unable to save playlist deletion."
+              );
+            }
+          },
+        },
+      ]
     );
+  }
+
+  return (
+    <View style={styles.playlist}>
+      {editing ? (
+        <View style={styles.editRow}>
+          <TextInput
+            style={styles.input}
+            value={name}
+            onChangeText={setName}
+            onSubmitEditing={saveRename}
+            autoFocus
+          />
+
+          <Pressable onPress={saveRename}>
+            <Text style={styles.action}>
+              Save
+            </Text>
+          </Pressable>
+
+          <Pressable
+            onPress={() => setEditing(false)}
+          >
+            <Text style={styles.action}>
+              Cancel
+            </Text>
+          </Pressable>
+        </View>
+      ) : (
+        <>
+          <Pressable
+            style={styles.playlistName}
+            onPress={() => onSelect(playlist)}
+          >
+            <Text
+              style={styles.name}
+              numberOfLines={1}
+            >
+              {playlist.name}
+            </Text>
+
+            <Text style={styles.count}>
+              {playlist.songIds.length} songs
+            </Text>
+          </Pressable>
+
+          <Pressable onPress={startEditing}>
+            <Text style={styles.action}>
+              Rename
+            </Text>
+          </Pressable>
+
+          <Pressable onPress={confirmDelete}>
+            <Text style={styles.delete}>
+              Delete
+            </Text>
+          </Pressable>
+        </>
+      )}
+    </View>
+  );
+});
+
+const EmptyPlaylists = memo(function EmptyPlaylists() {
+  const { styles } = useThemedStyles(createStyles);
+
+  return (
+    <Text style={styles.empty}>
+      No playlists created yet.
+    </Text>
+  );
+});
+
+function PlaylistManager({ onSelect }) {
+  const { styles } = useThemedStyles(createStyles);
+
+  const playlists = usePlaylistStore(
+    (s) => s.playlists
+  );
+
+  const renderItem = useCallback(
+    ({ item }) => (
+      <PlaylistRow
+        playlist={item}
+        onSelect={onSelect}
+      />
+    ),
+    [onSelect]
+  );
+
+  return (
+    <View style={styles.container}>
+      <CreatePlaylist />
+
+      <FlatList
+        data={playlists}
+        keyExtractor={keyExtractor}
+        renderItem={renderItem}
+        ListEmptyComponent={EmptyPlaylists}
+        initialNumToRender={10}
+        maxToRenderPerBatch={10}
+        windowSize={7}
+        keyboardShouldPersistTaps="handled"
+      />
+    </View>
+  );
 }
+
+export default memo(PlaylistManager);
 
 const createStyles = (colors) =>
   StyleSheet.create({
@@ -179,6 +300,7 @@ const createStyles = (colors) =>
 
     playlistName: {
       flex: 1,
+      minWidth: 0,
     },
 
     name: {

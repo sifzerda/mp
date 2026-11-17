@@ -7,14 +7,20 @@ import AlbumArtwork from "../components/AlbumArtwork";
 import SongList from "../components/SongList";
 
 import useMusicStore from "../store/useMusicStore";
-import { getAlbumId } from "../utils/musicCollections";
+import { getAlbumId } from "../utils/musicUtils";
 
 const EMPTY_ARRAY = Object.freeze([]);
 
 export default function AlbumDetailScreen({ route }) {
   const { album, artist } = route.params;
+
   const albumId = getAlbumId(artist, album);
-  const albumSongs = useMusicStore((s) => s.libraryIndex.albumsById.get(albumId)?.songs ?? EMPTY_ARRAY);
+
+  const albumSongs = useMusicStore(
+    (s) =>
+      s.libraryIndex.albumsById.get(albumId)?.songs ??
+      EMPTY_ARRAY
+  );
 
   return (
     <LibraryLayout

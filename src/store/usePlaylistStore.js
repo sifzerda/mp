@@ -1,160 +1,274 @@
 // src/store/usePlaylistStore.js
 
 import { create } from "zustand";
-import AsyncStorage from "@react-native-async-storage/async-storage";
+
+import {
+  readJSON,
+  writeJSON,
+} from "../services/storageService";
+
+import {
+  createPlaylistIndex,
+  normalizeSongIds,
+  playlistContainsSong,
+  isValidReorder,
+  sameOrder,
+} from "../utils/musicUtils";
 
 const STORAGE_KEY = "music-player-playlists-v1";
 
 let loadPromise = null;
-let saveQueue = Promise.resolve();
 
-const persist = (playlists) => {
-    const save = saveQueue.then(() => AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(playlists)));
+const usePlaylistStore = create((set, get) => {
+  async function commitPlaylists(playlists) {
+    if (playlists === get().playlists) return;
 
-    saveQueue = save.catch((error) => {
-        console.error("Failed to save playlists:", error);
+    set({
+      playlists,
+      playlistsById: createPlaylistIndex(playlists),
+      error: null,
     });
 
-    return save;
-};
+    try {
+      await writeJSON(STORAGE_KEY, playlists);
+    } catch (error) {
+      set({ error: error.message });
 
-const usePlaylistStore = create((set, get) => ({
+      throw error;
+    }
+  }
+
+  function updatePlaylist(id, updater) {
+    const current = get().playlistsById.get(id);
+
+    if (!current) return;
+
+    const updated = updater(current);
+
+    if (updated === current) return;
+
+    const playlists = get().playlists.map(
+      (playlist) =>
+        playlist.id === id
+          ? updated
+          : playlist
+    );
+
+    return commitPlaylists(playlists);
+  }
+
+  return {
     playlists: [],
+    playlistsById: new Map(),
+
     loaded: false,
+    error: null,
 
     loadPlaylists: async () => {
-        if (get().loaded) return;
-        if (loadPromise) return loadPromise;
+      if (get().loaded) return;
+      if (loadPromise) return loadPromise;
 
-        loadPromise = (async () => {
-            try {
-                const saved = await AsyncStorage.getItem(STORAGE_KEY);
-                const parsed = saved ? JSON.parse(saved) : [];
-
-                set({
-                    playlists: Array.isArray(parsed) ? parsed : [],
-                    loaded: true,
-                });
-            } catch (error) {
-                console.error("Failed to load playlists:", error);
-                set({ loaded: true });
-            }
-        })();
-
+      loadPromise = (async () => {
         try {
-            await loadPromise;
-        } finally {
-            loadPromise = null;
+          const saved = await readJSON(STORAGE_KEY, []);
+
+          if (
+            !Array.isArray(saved) ||
+            saved.some(
+              (item) =>
+                !item ||
+                typeof item.id !== "string" ||
+                typeof item.name !== "string" ||
+                !Array.isArray(item.songIds)
+            )
+          ) {
+            throw new Error("Invalid playlist data.");
+          }
+
+          const playlists = saved.map((playlist) => ({
+            ...playlist,
+            songIds: normalizeSongIds(playlist.songIds),
+          }));
+
+          set({
+            playlists,
+            playlistsById: createPlaylistIndex(playlists),
+            loaded: true,
+            error: null,
+          });
+        } catch (error) {
+          set({ error: error.message });
+
+          throw error;
         }
+      })();
+
+      try {
+        await loadPromise;
+      } finally {
+        loadPromise = null;
+      }
     },
 
+    getPlaylist: (id) =>
+      get().playlistsById.get(id) ?? null,
+
     createPlaylist: async (name) => {
-        await get().loadPlaylists();
+      const trimmed = name.trim();
 
-        const trimmed = name.trim();
-        if (!trimmed) return null;
+      if (!trimmed) return null;
 
-        const playlist = {
-            id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
-            name: trimmed,
-            songIds: [],
-        };
+      await get().loadPlaylists();
 
-        const playlists = [...get().playlists, playlist];
+      const playlist = {
+        id: `${Date.now()}-${Math.random()
+          .toString(36)
+          .slice(2)}`,
 
-        set({ playlists });
-        await persist(playlists);
+        name: trimmed,
+        songIds: [],
+      };
 
-        return playlist.id;
+      await commitPlaylists([
+        ...get().playlists,
+        playlist,
+      ]);
+
+      return playlist.id;
     },
 
     renamePlaylist: async (id, name) => {
-        await get().loadPlaylists();
+      const trimmed = name.trim();
 
-        const trimmed = name.trim();
-        if (!trimmed) return;
+      if (!trimmed) return;
 
-        const playlists = get().playlists.map((playlist) => playlist.id === id ? { ...playlist, name: trimmed } : playlist);
+      await get().loadPlaylists();
 
-        set({ playlists });
-        await persist(playlists);
+      await updatePlaylist(id, (playlist) => {
+        if (playlist.name === trimmed) {
+          return playlist;
+        }
+
+        return {
+          ...playlist,
+          name: trimmed,
+        };
+      });
     },
 
     deletePlaylist: async (id) => {
-        await get().loadPlaylists();
+      await get().loadPlaylists();
 
-        const playlists = get().playlists.filter((playlist) => playlist.id !== id);
+      if (!get().playlistsById.has(id)) return;
 
-        set({ playlists });
-        await persist(playlists);
+      await commitPlaylists(
+        get().playlists.filter(
+          (playlist) => playlist.id !== id
+        )
+      );
     },
 
     addSong: async (playlistId, songId) => {
-        await get().loadPlaylists();
+      if (songId == null) return;
 
-        const id = String(songId);
+      await get().loadPlaylists();
 
-        const playlists = get().playlists.map((playlist) => {
-            if (playlist.id !== playlistId) return playlist;
-            if (playlist.songIds.includes(id)) return playlist;
+      const id = String(songId);
 
-            return {
-                ...playlist,
-                songIds: [...playlist.songIds, id],
-            };
-        });
+      await updatePlaylist(
+        playlistId,
+        (playlist) => {
+          if (playlistContainsSong(playlist, id)) {
+            return playlist;
+          }
 
-        set({ playlists });
-        await persist(playlists);
+          return {
+            ...playlist,
+            songIds: [...playlist.songIds, id],
+          };
+        }
+      );
     },
 
     removeSong: async (playlistId, songId) => {
-        await get().loadPlaylists();
+      if (songId == null) return;
 
-        const id = String(songId);
-        const playlists = get().playlists.map((playlist) => playlist.id === playlistId
-            ? {
-                ...playlist,
-                songIds: playlist.songIds.filter((item) => item !== id),
-            }
-            : playlist
-        );
+      await get().loadPlaylists();
 
-        set({ playlists });
-        await persist(playlists);
-    },
+      const id = String(songId);
 
+      await updatePlaylist(
+        playlistId,
+        (playlist) => {
+          if (!playlistContainsSong(playlist, id)) {
+            return playlist;
+          }
 
-    reorderSongs: async (playlistId, orderedSongIds) => {
-        await get().loadPlaylists();
-
-        const playlist = get().playlists.find((item) => item.id === playlistId);
-
-        if (!playlist) return;
-
-        const originalIds = playlist.songIds.map(String);
-        const newIds = orderedSongIds.map(String);
-
-        // Only accept a reordering of the same songs.
-        if (
-            originalIds.length !== newIds.length ||
-            new Set(newIds).size !== newIds.length ||
-            !newIds.every((id) => originalIds.includes(id))
-        ) {
-            return;
+          return {
+            ...playlist,
+            songIds: playlist.songIds.filter(
+              (item) => item !== id
+            ),
+          };
         }
-
-        const playlists = get().playlists.map((item) =>
-            item.id === playlistId
-                ? { ...item, songIds: newIds }
-                : item
-        );
-
-        set({ playlists });
-        await persist(playlists);
+      );
     },
 
-}));
+    reorderSongs: async (
+      playlistId,
+      orderedSongIds,
+      expectedSongIds
+    ) => {
+      await get().loadPlaylists();
+
+      if (!Array.isArray(orderedSongIds)) return;
+
+      const orderedIds = orderedSongIds.map(String);
+
+      await updatePlaylist(
+        playlistId,
+        (playlist) => {
+          if (
+            expectedSongIds &&
+            !sameOrder(
+              playlist.songIds,
+              expectedSongIds
+            )
+          ) {
+            throw new Error(
+              "The playlist changed during reordering."
+            );
+          }
+
+          if (
+            !isValidReorder(
+              playlist.songIds,
+              orderedIds
+            )
+          ) {
+            throw new Error(
+              "Invalid playlist ordering."
+            );
+          }
+
+          if (sameOrder(playlist.songIds, orderedIds)) {
+            return playlist;
+          }
+
+          return {
+            ...playlist,
+            songIds: orderedIds,
+          };
+        }
+      );
+    },
+
+    containsSong: (playlistId, songId) =>
+      playlistContainsSong(
+        get().playlistsById.get(playlistId),
+        songId
+      ),
+  };
+});
 
 export default usePlaylistStore;
-

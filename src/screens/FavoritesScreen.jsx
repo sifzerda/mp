@@ -1,6 +1,6 @@
 // src/screens/FavoritesScreen.jsx
 
-import { useMemo } from "react";
+import { memo, useMemo } from "react";
 
 import LibraryLayout from "../components/LibraryLayout";
 import SongList from "../components/SongList";
@@ -8,17 +8,22 @@ import SongList from "../components/SongList";
 import useMusicStore from "../store/useMusicStore";
 import useFavoritesStore from "../store/useFavoritesStore";
 
-export default function FavoritesScreen() {
+function FavoritesScreen() {
   const songs = useMusicStore((s) => s.songs);
-  const favorites = useFavoritesStore((s) => s.favorites);
 
-  const favoriteSongs = useMemo(() => {
-    const ids = new Set(favorites.map(String));
+  const favoriteIds = useFavoritesStore(
+    (s) => s.favoriteIds
+  );
 
-    return songs.filter((song) =>
-      ids.has(String(song.id))
-    );
-  }, [songs, favorites]);
+  const favoriteSongs = useMemo(
+    () =>
+      favoriteIds.size
+        ? songs.filter((song) =>
+            favoriteIds.has(String(song.id))
+          )
+        : [],
+    [songs, favoriteIds]
+  );
 
   return (
     <LibraryLayout
@@ -32,3 +37,5 @@ export default function FavoritesScreen() {
     </LibraryLayout>
   );
 }
+
+export default memo(FavoritesScreen);

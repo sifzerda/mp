@@ -1,40 +1,107 @@
 // src/components/AlbumArtwork.jsx
 
-import { useEffect, useState } from "react";
-import { View, Text, Image, StyleSheet } from "react-native";
+import {
+  useCallback,
+  useEffect,
+  useState,
+  memo,
+} from "react";
 
-import { getSongArtwork } from "../services/artworkService";
+import {
+  View,
+  Text,
+  StyleSheet,
+} from "react-native";
+
+import { Image } from "expo-image";
+
+import {
+  getSongArtwork,
+  getArtworkSize,
+  getArtworkKey,
+  peekSongArtwork,
+  invalidateSongArtwork,
+} from "../services/artworkService";
+
 import useThemedStyles from "../theme/useThemedStyles";
 
-export default function AlbumArtwork({
+/* -------------------- ARTWORK LOADING -------------------- */
+
+function useSongArtwork(song, displaySize = 52) {
+  const uri = song?.uri || song?.url || null;
+  const size = getArtworkSize(displaySize);
+
+  const version = String(
+    song?.modificationTime ??
+    song?.modifiedAt ??
+    ""
+  );
+
+  const key = getArtworkKey(uri, size, version);
+
+  const [result, setResult] = useState(null);
+  const [retryKey, setRetryKey] = useState(null);
+
+  const retry = retryKey === key;
+
+  useEffect(() => {
+    let active = true;
+
+    if (!uri) return;
+
+    getSongArtwork(uri, size, version).then(
+      (artwork) => {
+        if (active) {
+          setResult({
+            key,
+            artwork,
+          });
+        }
+      }
+    );
+
+    return () => {
+      active = false;
+    };
+  }, [uri, size, version, key, retry]);
+
+  const artwork =
+    result?.key === key
+      ? result.artwork
+      : peekSongArtwork(uri, size, version) ?? null;
+
+  const handleError = useCallback(() => {
+    invalidateSongArtwork(uri, size, version);
+
+    setResult({
+      key,
+      artwork: null,
+    });
+
+    setRetryKey(key);
+  }, [uri, size, version, key]);
+
+  return {
+    artwork,
+    artworkKey: key,
+    handleError,
+  };
+}
+
+/* -------------------- COMPONENT -------------------- */
+
+function AlbumArtwork({
   song,
   size = 52,
   borderRadius = 12,
 }) {
   const { styles } = useThemedStyles(createStyles);
-  const [artwork, setArtwork] = useState(null);
 
-  const songUri = song?.uri || song?.url || null;
-
-  useEffect(() => {
-    let active = true;
-
-    setArtwork(null);
-
-    if (songUri) {
-      getSongArtwork(songUri)
-        .then((uri) => {
-          if (active) setArtwork(uri);
-        })
-        .catch((error) => {
-          console.warn("Failed to load album artwork:", error);
-        });
-    }
-
-    return () => {
-      active = false;
-    };
-  }, [songUri]);
+  const {
+    artwork,
+    artworkKey,
+    handleError,
+  } = useSongArtwork(song, size);
 
   return (
     <View
@@ -49,9 +116,14 @@ export default function AlbumArtwork({
     >
       {artwork ? (
         <Image
-          source={{ uri: artwork }}
+          source={artwork}
           style={styles.image}
-          resizeMode="cover"
+          contentFit="cover"
+          cachePolicy="memory"
+          recyclingKey={artworkKey}
+          transition={0}
+          allowDownscaling
+          onError={handleError}
         />
       ) : (
         <Text
@@ -66,6 +138,10 @@ export default function AlbumArtwork({
     </View>
   );
 }
+
+export default memo(AlbumArtwork);
+
+/* -------------------- STYLES -------------------- */
 
 const createStyles = (colors) =>
   StyleSheet.create({

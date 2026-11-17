@@ -1,41 +1,141 @@
 // src/components/PlaylistPicker.jsx
 
-import { useState } from "react";
-import { Modal, View, Text, Pressable, FlatList, StyleSheet, Alert } from "react-native";
+import {
+  memo,
+  useState,
+  useRef,
+  useCallback,
+} from "react";
+
+import {
+  Modal,
+  View,
+  Text,
+  Pressable,
+  FlatList,
+  StyleSheet,
+  Alert,
+} from "react-native";
+
 import usePlaylistStore from "../store/usePlaylistStore";
 import useThemedStyles from "../theme/useThemedStyles";
 
-export default function PlaylistPicker({
-  visible,
+import {
+  playlistContainsSong,
+} from "../utils/musicUtils";
+
+const keyExtractor = (item) => item.id;
+
+const PlaylistOption = memo(function PlaylistOption({
+  playlist,
+  songId,
+  busy,
+  onSelect,
+}) {
+  const { styles } = useThemedStyles(createStyles);
+
+  const added = playlistContainsSong(
+    playlist,
+    songId
+  );
+
+  return (
+    <Pressable
+      disabled={busy || added}
+      style={styles.item}
+      onPress={() => onSelect(playlist.id)}
+      accessibilityRole="button"
+      accessibilityState={{
+        disabled: busy || added,
+      }}
+    >
+      <View style={styles.itemDetails}>
+        <Text style={styles.itemText}>
+          {playlist.name}
+        </Text>
+
+        <Text style={styles.count}>
+          {playlist.songIds.length} songs
+        </Text>
+      </View>
+
+      {added && (
+        <Text style={styles.added}>✓ Added</Text>
+      )}
+    </Pressable>
+  );
+});
+
+const EmptyPlaylists = memo(function EmptyPlaylists() {
+  const { styles } = useThemedStyles(createStyles);
+
+  return (
+    <Text style={styles.empty}>
+      No playlists yet. Create one in the Playlists tab.
+    </Text>
+  );
+});
+
+function PlaylistPickerContent({
   song,
   onClose,
 }) {
-  const playlists = usePlaylistStore((s) => s.playlists);
-  const addSong = usePlaylistStore((s) => s.addSong);
-  const [busy, setBusy] = useState(false);
   const { styles } = useThemedStyles(createStyles);
 
-  const handleSelect = async (playlist) => {
-    if (!song || busy) return;
+  const playlists = usePlaylistStore(
+    (s) => s.playlists
+  );
 
-    setBusy(true);
+  const addSong = usePlaylistStore(
+    (s) => s.addSong
+  );
 
-    try {
-      await addSong(playlist.id, song.id);
-      onClose();
-    } catch (error) {
-      Alert.alert("Error", "Unable to add song to playlist.");
-    } finally {
-      setBusy(false);
-    }
-  };
+  const [busy, setBusy] = useState(false);
+  const busyRef = useRef(false);
+
+  const songId = song.id;
+
+  const handleSelect = useCallback(
+    async (playlistId) => {
+      if (busyRef.current) return;
+
+      busyRef.current = true;
+      setBusy(true);
+
+      try {
+        await addSong(playlistId, songId);
+        onClose();
+      } catch {
+        Alert.alert(
+          "Error",
+          "Unable to save song to playlist."
+        );
+      } finally {
+        busyRef.current = false;
+        setBusy(false);
+      }
+    },
+    [addSong, songId, onClose]
+  );
+
+  const renderItem = useCallback(
+    ({ item }) => (
+      <PlaylistOption
+        playlist={item}
+        songId={songId}
+        busy={busy}
+        onSelect={handleSelect}
+      />
+    ),
+    [songId, busy, handleSelect]
+  );
 
   return (
     <Modal
-      visible={visible}
+      visible
       transparent
       animationType="fade"
-      onRequestClose={onClose}
+      onRequestClose={busy ? () => {} : onClose}
     >
       <View style={styles.overlay}>
         <View style={styles.modal}>
@@ -45,34 +145,44 @@ export default function PlaylistPicker({
 
           <FlatList
             data={playlists}
-            keyExtractor={(item) => item.id}
-            renderItem={({ item }) => (
-              <Pressable
-                disabled={busy}
-                style={styles.item}
-                onPress={() => handleSelect(item)}
-              >
-                <Text style={styles.itemText}>
-                  {item.name}
-                </Text>
-              </Pressable>
-            )}
-            ListEmptyComponent={
-              <Text style={styles.empty}>
-                No playlists yet. Create one in the
-                Playlists tab.
-              </Text>
-            }
+            keyExtractor={keyExtractor}
+            renderItem={renderItem}
+            ListEmptyComponent={EmptyPlaylists}
+            initialNumToRender={10}
+            maxToRenderPerBatch={10}
+            windowSize={5}
           />
 
-          <Pressable onPress={onClose} style={styles.close}>
-            <Text style={styles.closeText}>Cancel</Text>
+          <Pressable
+            disabled={busy}
+            onPress={onClose}
+            style={styles.close}
+          >
+            <Text style={styles.closeText}>
+              Cancel
+            </Text>
           </Pressable>
         </View>
       </View>
     </Modal>
   );
 }
+
+export default memo(function PlaylistPicker({
+  visible,
+  song,
+  onClose,
+}) {
+  if (!visible || !song) return null;
+
+  return (
+    <PlaylistPickerContent
+      key={String(song.id)}
+      song={song}
+      onClose={onClose}
+    />
+  );
+});
 
 const createStyles = (colors) =>
   StyleSheet.create({
@@ -98,14 +208,32 @@ const createStyles = (colors) =>
     },
 
     item: {
+      flexDirection: "row",
+      alignItems: "center",
       paddingVertical: 16,
       borderBottomWidth: 1,
       borderBottomColor: colors.border,
     },
 
+    itemDetails: {
+      flex: 1,
+    },
+
     itemText: {
       color: colors.text,
       fontSize: 16,
+    },
+
+    count: {
+      color: colors.muted,
+      fontSize: 12,
+      marginTop: 4,
+    },
+
+    added: {
+      color: colors.success,
+      fontSize: 13,
+      fontWeight: "600",
     },
 
     empty: {

@@ -1,3 +1,11 @@
+
+Prioritising stability, low battery consumption, low memory consumption, small APK size, and reliable background playback.
+
+
+
+
+
+
 react-native-track-player
 - expo
 - gradle

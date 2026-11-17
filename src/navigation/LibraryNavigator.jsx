@@ -98,12 +98,22 @@ export default function LibraryNavigator() {
   const loadFavorites = useFavoritesStore((s) => s.loadFavorites);
   const loadPlaylists = usePlaylistStore((s) => s.loadPlaylists);
 
+  // Initialize library and persistent storage
   useEffect(() => {
-    Promise.all([
+    Promise.allSettled([
       loadSongs(),
       loadFavorites(),
       loadPlaylists(),
-    ]).catch(console.error);
+    ]).then((results) => {
+      for (const result of results) {
+        if (result.status === "rejected") {
+          console.error(
+            "Library initialization failed:",
+            result.reason
+          );
+        }
+      }
+    });
   }, [loadSongs, loadFavorites, loadPlaylists]);
 
   return (

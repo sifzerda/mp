@@ -29,9 +29,7 @@ import LibraryEmptyState from "./LibraryEmptyState";
 import useMusicStore from "../store/useMusicStore";
 import useThemedStyles from "../theme/useThemedStyles";
 
-import {
-  filterCollections,
-} from "../utils/musicCollections";
+import { filterCollections } from "../utils/musicUtils";
 
 /* -------------------- LIST HELPERS -------------------- */
 
