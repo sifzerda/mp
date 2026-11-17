@@ -5,13 +5,10 @@ import { View, Text, ActivityIndicator, StyleSheet } from "react-native";
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 
-import LibraryScreen from "./src/screens/LibraryScreen";
-import NowPlayingScreen from "./src/screens/NowPlayingScreen";
-import MiniPlayer from "./src/components/MiniPlayer";
-import usePlayerStore from "./src/store/usePlayerStore";
-import { initializePlayer } from "./src/services/audioService";
-import SettingsScreen from "./src/screens/SettingsScreen";
+import RootNavigator from "./src/navigation/RootNavigator";
 import useThemedStyles from "./src/theme/useThemedStyles";
+
+import { initializePlayer } from "./src/services/audioService";
 import { StatusBar } from "react-native";
 
 export default function App() {
@@ -20,19 +17,15 @@ export default function App() {
   const [ready, setReady] = useState(false);
   const [error, setError] = useState(null);
 
-  const showNowPlaying = usePlayerStore((s) => s.showNowPlaying);
-  const showSettings = usePlayerStore((s) => s.showSettings);
-  const closeSettings = usePlayerStore((s) => s.closeSettings);
-
-  useEffect(() => {
+    useEffect(() => {
     let mounted = true;
 
     initializePlayer()
       .then(() => {
         if (mounted) setReady(true);
       })
-      .catch((err) => {
-        if (mounted) setError(err.message);
+      .catch((error) => {
+        if (mounted) setError(error.message);
       });
 
     return () => {
@@ -40,7 +33,7 @@ export default function App() {
     };
   }, []);
 
-   return (
+  return (
     <GestureHandlerRootView style={styles.root}>
       <SafeAreaProvider>
         <SafeAreaView style={styles.container}>
@@ -54,28 +47,23 @@ export default function App() {
 
           {error ? (
             <View style={styles.center}>
-              <Text style={styles.error}>{error}</Text>
+              <Text style={styles.error}>
+                {error}
+              </Text>
             </View>
           ) : !ready ? (
             <View style={styles.center}>
-              <ActivityIndicator color={colors.primary} />
+              <ActivityIndicator
+                size="large"
+                color={colors.primary}
+              />
 
               <Text style={styles.loading}>
                 Initializing audio player...
               </Text>
             </View>
-          ) : showSettings ? (
-            <SettingsScreen onBack={closeSettings} />
-          ) : showNowPlaying ? (
-            <NowPlayingScreen />
           ) : (
-            <>
-              <View style={styles.library}>
-                <LibraryScreen />
-              </View>
-
-              <MiniPlayer />
-            </>
+            <RootNavigator />
           )}
         </SafeAreaView>
       </SafeAreaProvider>
@@ -93,10 +81,6 @@ const createStyles = (colors) =>
     container: {
       flex: 1,
       backgroundColor: colors.background,
-    },
-
-    library: {
-      flex: 1,
     },
 
     center: {

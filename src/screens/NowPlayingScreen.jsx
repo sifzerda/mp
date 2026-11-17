@@ -1,6 +1,6 @@
 // src/screens/NowPlayingScreen.jsx
 
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import {
   View,
   Text,
@@ -20,10 +20,10 @@ import AlbumArtwork from "../components/AlbumArtwork";
 import PlaybackModes from "../components/PlaybackModes";
 import PlaybackSpeed from "../components/PlaybackSpeed";
 
-import QueueScreen from "./QueueScreen";
+
 
 import useMusicStore from "../store/useMusicStore";
-import usePlayerStore from "../store/usePlayerStore";
+
 import useFavoritesStore from "../store/useFavoritesStore";
 import useThemedStyles from "../theme/useThemedStyles";
 
@@ -35,16 +35,15 @@ function formatTime(seconds) {
   return `${minutes}:${String(remaining).padStart(2, "0")}`;
 }
 
-export default function NowPlayingScreen() {
+export default function NowPlayingScreen({ navigation }) {
   const { colors, styles } = useThemedStyles(createStyles);
 
-  const [showQueue, setShowQueue] = useState(false);
+
 
   const track = useActiveTrack();
   const { position, duration } = useProgress(500);
-
+  const closePlayer = () => navigation.goBack();
   const songs = useMusicStore((s) => s.songs);
-  const closePlayer = usePlayerStore((s) => s.closePlayer);
 
   const favorites = useFavoritesStore((s) => s.favorites);
   const toggleFavorite = useFavoritesStore((s) => s.toggleFavorite);
@@ -70,12 +69,6 @@ export default function NowPlayingScreen() {
     0,
     duration || track?.duration || 0
   );
-
-  if (showQueue) {
-    return (
-      <QueueScreen onBack={() => setShowQueue(false)} />
-    );
-  }
 
   if (!track) {
     return (
@@ -171,7 +164,7 @@ export default function NowPlayingScreen() {
 
       {/* Playback queue */}
       <Pressable
-        onPress={() => setShowQueue(true)}
+        onPress={() => navigation.navigate("Queue")}
         style={styles.queueButton}
         accessibilityRole="button"
         accessibilityLabel="Open playback queue"

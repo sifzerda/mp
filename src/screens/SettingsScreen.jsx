@@ -13,7 +13,8 @@ const THEMES = [
     { value: "system", label: "System", icon: "◐" },
 ];
 
-export default function SettingsScreen({ onBack }) {
+export default function SettingsScreen({ navigation }) {
+  const onBack = () => navigation.goBack();
     const theme = useSettingsStore((s) => s.theme);
     const accent = useSettingsStore((s) => s.accent);
     const setTheme = useSettingsStore((s) => s.setTheme);

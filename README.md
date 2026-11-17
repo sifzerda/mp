@@ -1,6 +1,8 @@
 react-native-track-player
 - expo
 - gradle
+- react-navigation
+- zustand
 
 
 

@@ -37,7 +37,8 @@ import {
   playQueuedTrack,
 } from "../services/audioService";
 
-export default function QueueScreen({ onBack }) {
+export default function QueueScreen({ navigation }) {
+  const onBack = () => navigation.goBack();
   const { colors, styles } = useThemedStyles(createStyles);
 
   const [currentTrack, setCurrentTrack] = useState(null);

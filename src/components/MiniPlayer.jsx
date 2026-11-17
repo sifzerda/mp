@@ -8,7 +8,7 @@ import {
   Pressable,
   StyleSheet,
 } from "react-native";
-
+import { useNavigation } from "@react-navigation/native";
 import Slider from "@react-native-community/slider";
 
 import TrackPlayer, {
@@ -25,7 +25,6 @@ import {
 
 import AlbumArtwork from "./AlbumArtwork";
 
-import usePlayerStore from "../store/usePlayerStore";
 import useMusicStore from "../store/useMusicStore";
 import useThemedStyles from "../theme/useThemedStyles";
 
@@ -37,7 +36,7 @@ function formatTime(seconds) {
   return `${minutes}:${String(remaining).padStart(2, "0")}`;
 }
 
-export default function MiniPlayer() {
+export default function MiniPlayer({}) {
   const { colors, styles } = useThemedStyles(createStyles);
 
   const track = useActiveTrack();
@@ -45,7 +44,10 @@ export default function MiniPlayer() {
   const { position, duration } = useProgress(500);
 
   const songs = useMusicStore((s) => s.songs);
-  const openPlayer = usePlayerStore((s) => s.openPlayer);
+  const navigation = useNavigation();
+
+  const openPlayer = () =>
+    navigation.navigate("NowPlaying");
 
   const [isSeeking, setIsSeeking] = useState(false);
   const [seekPosition, setSeekPosition] = useState(0);
@@ -102,7 +104,7 @@ export default function MiniPlayer() {
       <View style={styles.topRow}>
         <Pressable
           style={styles.details}
-          onPress={openPlayer}
+          onPress={onOpenPlayer}
           accessibilityRole="button"
           accessibilityLabel="Open now playing"
         >

@@ -1,16 +1,16 @@
 -- Merging decision tree log ---
 manifest
-ADDED from C:\mp\modules\music-artwork\android\build\intermediates\tmp\ProcessLibraryManifest\debug\tempAndroidManifest13957941108667387130.xml:2:13-83
-INJECTED from C:\mp\modules\music-artwork\android\build\intermediates\tmp\ProcessLibraryManifest\debug\tempAndroidManifest13957941108667387130.xml:2:13-83
+ADDED from C:\mp\modules\music-artwork\android\build\intermediates\tmp\ProcessLibraryManifest\debug\tempAndroidManifest5980721946103442586.xml:2:13-83
+INJECTED from C:\mp\modules\music-artwork\android\build\intermediates\tmp\ProcessLibraryManifest\debug\tempAndroidManifest5980721946103442586.xml:2:13-83
 	package
-		INJECTED from C:\mp\modules\music-artwork\android\build\intermediates\tmp\ProcessLibraryManifest\debug\tempAndroidManifest13957941108667387130.xml
+		INJECTED from C:\mp\modules\music-artwork\android\build\intermediates\tmp\ProcessLibraryManifest\debug\tempAndroidManifest5980721946103442586.xml
 	xmlns:android
-		ADDED from C:\mp\modules\music-artwork\android\build\intermediates\tmp\ProcessLibraryManifest\debug\tempAndroidManifest13957941108667387130.xml:2:23-81
+		ADDED from C:\mp\modules\music-artwork\android\build\intermediates\tmp\ProcessLibraryManifest\debug\tempAndroidManifest5980721946103442586.xml:2:23-81
 uses-sdk
-INJECTED from C:\mp\modules\music-artwork\android\build\intermediates\tmp\ProcessLibraryManifest\debug\tempAndroidManifest13957941108667387130.xml reason: use-sdk injection requested
-INJECTED from C:\mp\modules\music-artwork\android\build\intermediates\tmp\ProcessLibraryManifest\debug\tempAndroidManifest13957941108667387130.xml
-INJECTED from C:\mp\modules\music-artwork\android\build\intermediates\tmp\ProcessLibraryManifest\debug\tempAndroidManifest13957941108667387130.xml
+INJECTED from C:\mp\modules\music-artwork\android\build\intermediates\tmp\ProcessLibraryManifest\debug\tempAndroidManifest5980721946103442586.xml reason: use-sdk injection requested
+INJECTED from C:\mp\modules\music-artwork\android\build\intermediates\tmp\ProcessLibraryManifest\debug\tempAndroidManifest5980721946103442586.xml
+INJECTED from C:\mp\modules\music-artwork\android\build\intermediates\tmp\ProcessLibraryManifest\debug\tempAndroidManifest5980721946103442586.xml
 	android:targetSdkVersion
-		INJECTED from C:\mp\modules\music-artwork\android\build\intermediates\tmp\ProcessLibraryManifest\debug\tempAndroidManifest13957941108667387130.xml
+		INJECTED from C:\mp\modules\music-artwork\android\build\intermediates\tmp\ProcessLibraryManifest\debug\tempAndroidManifest5980721946103442586.xml
 	android:minSdkVersion
-		INJECTED from C:\mp\modules\music-artwork\android\build\intermediates\tmp\ProcessLibraryManifest\debug\tempAndroidManifest13957941108667387130.xml
+		INJECTED from C:\mp\modules\music-artwork\android\build\intermediates\tmp\ProcessLibraryManifest\debug\tempAndroidManifest5980721946103442586.xml
