@@ -6,7 +6,8 @@ import TrackPlayer, {
   AppKilledPlaybackBehavior,
   State,
 } from "react-native-track-player";
-
+import useSettingsStore from "../store/useSettingsStore";
+import { NativeModules, Platform } from "react-native";
 import usePlaybackStore from "../store/usePlaybackStore";
 
 const REPEAT_MODES = Object.freeze([
@@ -111,7 +112,7 @@ function runOperation(operation) {
     return operation();
   });
 
-  playbackOperation = result.catch(() => {});
+  playbackOperation = result.catch(() => { });
 
   return result;
 }
@@ -134,9 +135,21 @@ export function initializePlayer() {
 }
 
 async function initialize() {
+  if (!useSettingsStore.persist.hasHydrated()) {
+    await useSettingsStore.persist.rehydrate();
+  }
+
   await TrackPlayer.setupPlayer({
     autoHandleInterruptions: true,
+    pauseOnDisconnect:
+      useSettingsStore.getState().pauseOnDisconnect,
   });
+
+  if (Platform.OS === "android") {
+    await NativeModules.TrackPlayerModule.setPauseOnDisconnect(
+      useSettingsStore.getState().pauseOnDisconnect
+    );
+  }
 
   await TrackPlayer.updateOptions({
     capabilities: [
@@ -165,6 +178,7 @@ async function initialize() {
   const { speed, repeat } = getStore();
 
   await TrackPlayer.setRate(speed);
+
   await TrackPlayer.setRepeatMode(
     NATIVE_REPEAT_MODES[repeat]
   );
@@ -509,7 +523,7 @@ export function moveQueuedTrack(
     if (
       expectedDestinationId != null &&
       String(destination.id) !==
-        String(expectedDestinationId)
+      String(expectedDestinationId)
     ) {
       throw new Error("The playback queue has changed");
     }

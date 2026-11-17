@@ -1,5 +1,39 @@
+diff --git a/node_modules/react-native-track-player/android/.gradle/9.8.1/checksums/checksums.lock b/node_modules/react-native-track-player/android/.gradle/9.8.1/checksums/checksums.lock
+new file mode 100644
+index 0000000..1e509ab
+Binary files /dev/null and b/node_modules/react-native-track-player/android/.gradle/9.8.1/checksums/checksums.lock differ
+diff --git a/node_modules/react-native-track-player/android/.gradle/9.8.1/fileChanges/last-build.bin b/node_modules/react-native-track-player/android/.gradle/9.8.1/fileChanges/last-build.bin
+new file mode 100644
+index 0000000..f76dd23
+Binary files /dev/null and b/node_modules/react-native-track-player/android/.gradle/9.8.1/fileChanges/last-build.bin differ
+diff --git a/node_modules/react-native-track-player/android/.gradle/9.8.1/fileHashes/fileHashes.bin b/node_modules/react-native-track-player/android/.gradle/9.8.1/fileHashes/fileHashes.bin
+new file mode 100644
+index 0000000..2382bcd
+Binary files /dev/null and b/node_modules/react-native-track-player/android/.gradle/9.8.1/fileHashes/fileHashes.bin differ
+diff --git a/node_modules/react-native-track-player/android/.gradle/9.8.1/fileHashes/fileHashes.lock b/node_modules/react-native-track-player/android/.gradle/9.8.1/fileHashes/fileHashes.lock
+new file mode 100644
+index 0000000..9372258
+Binary files /dev/null and b/node_modules/react-native-track-player/android/.gradle/9.8.1/fileHashes/fileHashes.lock differ
+diff --git a/node_modules/react-native-track-player/android/.gradle/9.8.1/gc.properties b/node_modules/react-native-track-player/android/.gradle/9.8.1/gc.properties
+new file mode 100644
+index 0000000..e69de29
+diff --git a/node_modules/react-native-track-player/android/.gradle/buildOutputCleanup/buildOutputCleanup.lock b/node_modules/react-native-track-player/android/.gradle/buildOutputCleanup/buildOutputCleanup.lock
+new file mode 100644
+index 0000000..9cd3b39
+Binary files /dev/null and b/node_modules/react-native-track-player/android/.gradle/buildOutputCleanup/buildOutputCleanup.lock differ
+diff --git a/node_modules/react-native-track-player/android/.gradle/buildOutputCleanup/cache.properties b/node_modules/react-native-track-player/android/.gradle/buildOutputCleanup/cache.properties
+new file mode 100644
+index 0000000..109efdc
+--- /dev/null
++++ b/node_modules/react-native-track-player/android/.gradle/buildOutputCleanup/cache.properties
+@@ -0,0 +1,2 @@
++#Tue Nov 17 21:27:20 AEDT 2026
++gradle.version=9.8.1
+diff --git a/node_modules/react-native-track-player/android/.gradle/vcs-1/gc.properties b/node_modules/react-native-track-player/android/.gradle/vcs-1/gc.properties
+new file mode 100644
+index 0000000..e69de29
 diff --git a/node_modules/react-native-track-player/android/src/main/java/com/doublesymmetry/trackplayer/module/MusicModule.kt b/node_modules/react-native-track-player/android/src/main/java/com/doublesymmetry/trackplayer/module/MusicModule.kt
-index b2409a0..27c6245 100644
+index b2409a0..6c25fa5 100644
 --- a/node_modules/react-native-track-player/android/src/main/java/com/doublesymmetry/trackplayer/module/MusicModule.kt
 +++ b/node_modules/react-native-track-player/android/src/main/java/com/doublesymmetry/trackplayer/module/MusicModule.kt
 @@ -35,6 +35,11 @@ class MusicModule(reactContext: ReactApplicationContext) : ReactContextBaseJavaM
@@ -174,7 +208,7 @@ index b2409a0..27c6245 100644
  
          musicService.stop()
          delay(300) // Allow playback to stop
-@@ -433,134 +438,137 @@ class MusicModule(reactContext: ReactApplicationContext) : ReactContextBaseJavaM
+@@ -433,134 +438,145 @@ class MusicModule(reactContext: ReactApplicationContext) : ReactContextBaseJavaM
      }
  
      @ReactMethod
@@ -200,6 +234,14 @@ index b2409a0..27c6245 100644
      @ReactMethod
 -    fun stop(callback: Promise) = scope.launch {
 -        if (verifyServiceBoundOrReject(callback)) return@launch
++fun setPauseOnDisconnect(enabled: Boolean, callback: Promise) = launchVoid {
++    if (verifyServiceBoundOrReject(callback)) return@launchVoid
++
++    musicService.setPauseOnDisconnect(enabled)
++    callback.resolve(null)
++}
++
++    @ReactMethod
 +    fun stop(callback: Promise) = launchVoid {
 +        if (verifyServiceBoundOrReject(callback)) return@launchVoid
  
@@ -347,7 +389,7 @@ index b2409a0..27c6245 100644
  
          try {
              musicService.clear()
-@@ -572,48 +580,47 @@ class MusicModule(reactContext: ReactApplicationContext) : ReactContextBaseJavaM
+@@ -572,48 +588,47 @@ class MusicModule(reactContext: ReactApplicationContext) : ReactContextBaseJavaM
      }
  
      @ReactMethod
@@ -413,7 +455,7 @@ index b2409a0..27c6245 100644
          var bundle = Bundle()
          bundle.putDouble("duration", musicService.getDurationInSeconds());
          bundle.putDouble("position", musicService.getPositionInSeconds());
-@@ -622,8 +629,8 @@ class MusicModule(reactContext: ReactApplicationContext) : ReactContextBaseJavaM
+@@ -622,8 +637,8 @@ class MusicModule(reactContext: ReactApplicationContext) : ReactContextBaseJavaM
      }
  
      @ReactMethod
@@ -425,10 +467,21 @@ index b2409a0..27c6245 100644
      }
  }
 diff --git a/node_modules/react-native-track-player/android/src/main/java/com/doublesymmetry/trackplayer/service/MusicService.kt b/node_modules/react-native-track-player/android/src/main/java/com/doublesymmetry/trackplayer/service/MusicService.kt
-index afa6b0f..e5fcba8 100644
+index afa6b0f..20b0708 100644
 --- a/node_modules/react-native-track-player/android/src/main/java/com/doublesymmetry/trackplayer/service/MusicService.kt
 +++ b/node_modules/react-native-track-player/android/src/main/java/com/doublesymmetry/trackplayer/service/MusicService.kt
-@@ -30,6 +30,7 @@ import com.doublesymmetry.trackplayer.module.MusicEvents.Companion.METADATA_PAYL
+@@ -10,6 +10,10 @@ import android.os.Build
+ import android.os.Bundle
+ import android.os.IBinder
+ import android.support.v4.media.RatingCompat
++import android.content.BroadcastReceiver
++import android.content.IntentFilter
++import android.media.AudioManager
++import androidx.core.content.ContextCompat
+ import androidx.annotation.MainThread
+ import androidx.core.app.NotificationCompat
+ import androidx.core.app.NotificationCompat.PRIORITY_LOW
+@@ -30,6 +34,7 @@ import com.doublesymmetry.trackplayer.module.MusicEvents.Companion.METADATA_PAYL
  import com.doublesymmetry.trackplayer.utils.BundleUtils
  import com.doublesymmetry.trackplayer.utils.BundleUtils.setRating
  import com.facebook.react.HeadlessJsTaskService
@@ -436,7 +489,86 @@ index afa6b0f..e5fcba8 100644
  import com.facebook.react.bridge.Arguments
  import com.facebook.react.jstasks.HeadlessJsTaskConfig
  import com.facebook.react.modules.core.DeviceEventManagerModule
-@@ -739,23 +740,34 @@ class MusicService : HeadlessJsTaskService() {
+@@ -47,6 +52,51 @@ class MusicService : HeadlessJsTaskService() {
+     private val scope = MainScope()
+     private var progressUpdateJob: Job? = null
+ 
++    /* -------------------- HEADPHONE DISCONNECT -------------------- */
++
++    private var pauseOnDisconnect = true
++    private var noisyReceiverRegistered = false
++
++    private val noisyReceiver = object : BroadcastReceiver() {
++        override fun onReceive(context: Context?, intent: Intent?) {
++            if (
++                intent?.action == AudioManager.ACTION_AUDIO_BECOMING_NOISY &&
++                pauseOnDisconnect &&
++                this@MusicService::player.isInitialized &&
++                player.playWhenReady
++            ) {
++                player.pause()
++            }
++        }
++    }
++
++    @MainThread
++    fun setPauseOnDisconnect(enabled: Boolean) {
++        pauseOnDisconnect = enabled
++    }
++
++    private fun registerNoisyReceiver() {
++        if (noisyReceiverRegistered) return
++
++        ContextCompat.registerReceiver(
++            this,
++            noisyReceiver,
++            IntentFilter(AudioManager.ACTION_AUDIO_BECOMING_NOISY),
++            ContextCompat.RECEIVER_NOT_EXPORTED
++        )
++
++        noisyReceiverRegistered = true
++    }
++
++    private fun unregisterNoisyReceiver() {
++        if (!noisyReceiverRegistered) return
++
++        unregisterReceiver(noisyReceiver)
++        noisyReceiverRegistered = false
++    }
++
++    /* -------------------- EXISTING PLAYBACK SERVICE -------------------- */
++
+     /**
+      * Use [appKilledPlaybackBehavior] instead.
+      */
+@@ -142,7 +192,7 @@ class MusicService : HeadlessJsTaskService() {
+         val cacheConfig = CacheConfig(playerOptions?.getDouble(MAX_CACHE_SIZE_KEY)?.toLong())
+         val playerConfig = PlayerConfig(
+             interceptPlayerActionsTriggeredExternally = true,
+-            handleAudioBecomingNoisy = true,
++            handleAudioBecomingNoisy = false,
+             handleAudioFocus = playerOptions?.getBoolean(AUTO_HANDLE_INTERRUPTIONS) ?: false,
+             audioContentType = when(playerOptions?.getString(ANDROID_AUDIO_CONTENT_TYPE)) {
+                 "music" -> AudioContentType.MUSIC
+@@ -156,10 +206,13 @@ class MusicService : HeadlessJsTaskService() {
+ 
+         val automaticallyUpdateNotificationMetadata = playerOptions?.getBoolean(AUTO_UPDATE_METADATA, true) ?: true
+ 
+-        player = QueuedAudioPlayer(this@MusicService, playerConfig, bufferConfig, cacheConfig)
+-        player.automaticallyUpdateNotificationMetadata = automaticallyUpdateNotificationMetadata
+-        observeEvents()
+-        setupForegrounding()
++player = QueuedAudioPlayer(this@MusicService, playerConfig, bufferConfig, cacheConfig)
++
++pauseOnDisconnect = playerOptions?.getBoolean("pauseOnDisconnect", true) ?: true
++registerNoisyReceiver()
++player.automaticallyUpdateNotificationMetadata = automaticallyUpdateNotificationMetadata
++observeEvents()
++setupForegrounding()
+     }
+ 
+     @MainThread
+@@ -739,23 +792,34 @@ class MusicService : HeadlessJsTaskService() {
          return bundle
      }
  
@@ -484,3 +616,30 @@ index afa6b0f..e5fcba8 100644
      override fun getTaskConfig(intent: Intent?): HeadlessJsTaskConfig {
          return HeadlessJsTaskConfig(TASK_KEY, Arguments.createMap(), 0, true)
      }
+@@ -796,16 +860,19 @@ class MusicService : HeadlessJsTaskService() {
+         // This is empty so ReactNative doesn't kill this service
+     }
+ 
+-    @MainThread
+-    override fun onDestroy() {
+-        super.onDestroy()
+-        if (::player.isInitialized) {
+-            player.destroy()
+-        }
++@MainThread
++override fun onDestroy() {
++    unregisterNoisyReceiver()
+ 
+-        progressUpdateJob?.cancel()
++    super.onDestroy()
++
++    if (::player.isInitialized) {
++        player.destroy()
+     }
+ 
++    progressUpdateJob?.cancel()
++}
++
+     @MainThread
+     inner class MusicBinder : Binder() {
+         val service = this@MusicService

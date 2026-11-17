@@ -17,8 +17,6 @@ export default function ThemePreview() {
           <Text style={styles.title}>Song Title</Text>
           <Text style={styles.artist}>Artist Name</Text>
         </View>
-
-        <Text style={styles.heart}>♥</Text>
       </View>
 
       <View style={styles.progress}>
