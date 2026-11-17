@@ -1,13 +1,29 @@
 // src/components/PlayerControls.jsx
 
-import { memo } from "react";
+import {
+  memo,
+  useCallback,
+  useState,
+} from "react";
+
 import {
   View,
   Text,
   Pressable,
   StyleSheet,
-  Alert,
 } from "react-native";
+
+import {
+  Play,
+  Pause,
+  SkipBack,
+  SkipForward,
+  Shuffle,
+  Repeat,
+  Repeat1,
+  ListMusic,
+  Gauge,
+} from "lucide-react-native";
 
 import {
   usePlaybackState,
@@ -20,303 +36,338 @@ import {
   previousTrack,
   toggleShuffle,
   cycleRepeat,
-  setPlaybackSpeed,
 } from "../services/audioService";
 
 import usePlaybackAction from "../hooks/usePlaybackAction";
 import useThemedStyles from "../theme/useThemedStyles";
 import usePlaybackStore from "../store/usePlaybackStore";
 
+import PlaySpeedModal from "./PlaySpeedModal";
+
 const REPEAT_LABELS = {
-  off: "Repeat Off",
+  off: "Repeat",
   all: "Repeat All",
   one: "Repeat One",
 };
 
-const SPEEDS = [0.5, 0.75, 1, 1.25, 1.5, 2];
-
 /* -------------------- PLAYBACK CONTROLS -------------------- */
 
 const PlaybackControls = memo(function PlaybackControls() {
-  const { styles } = useThemedStyles(createControlsStyles);
+  const { colors, styles } = useThemedStyles(createStyles);
+
   const { state } = usePlaybackState();
   const { busy, runAction } = usePlaybackAction();
 
   const isPlaying = state === State.Playing;
+  const PlayIcon = isPlaying ? Pause : Play;
 
   return (
-    <View style={styles.container}>
+    <View style={styles.transport}>
       <Pressable
         onPress={() => runAction(previousTrack)}
         disabled={busy}
-        style={styles.button}
+        style={({ pressed }) => [
+          styles.skipButton,
+          pressed && styles.pressed,
+          busy && styles.disabled,
+        ]}
         accessibilityRole="button"
         accessibilityLabel="Previous track"
       >
-        <Text style={styles.icon}>⏮</Text>
+        <SkipBack
+          size={32}
+          color={colors.text}
+          fill={colors.text}
+        />
       </Pressable>
 
       <Pressable
         onPress={() => runAction(togglePlayback)}
         disabled={busy}
-        style={styles.playButton}
+        style={({ pressed }) => [
+          styles.playButton,
+          pressed && styles.pressed,
+          busy && styles.disabled,
+        ]}
         accessibilityRole="button"
         accessibilityLabel={isPlaying ? "Pause" : "Play"}
       >
-        <Text style={styles.playIcon}>
-          {isPlaying ? "⏸" : "▶"}
-        </Text>
+        <PlayIcon
+          size={34}
+          color={colors.onPrimary}
+          fill={colors.onPrimary}
+          style={!isPlaying && styles.playIcon}
+        />
       </Pressable>
 
       <Pressable
         onPress={() => runAction(nextTrack)}
         disabled={busy}
-        style={styles.button}
+        style={({ pressed }) => [
+          styles.skipButton,
+          pressed && styles.pressed,
+          busy && styles.disabled,
+        ]}
         accessibilityRole="button"
         accessibilityLabel="Next track"
       >
-        <Text style={styles.icon}>⏭</Text>
+        <SkipForward
+          size={32}
+          color={colors.text}
+          fill={colors.text}
+        />
       </Pressable>
     </View>
+  );
+});
+
+/* -------------------- MODE BUTTON -------------------- */
+
+const ModeButton = memo(function ModeButton({
+  icon: Icon,
+  label,
+  active = false,
+  disabled = false,
+  onPress,
+  accessibilityLabel,
+}) {
+  const { colors, styles } = useThemedStyles(createStyles);
+
+  const color = active
+    ? colors.primary
+    : colors.muted;
+
+  return (
+    <Pressable
+      onPress={onPress}
+      disabled={disabled}
+      style={({ pressed }) => [
+        styles.modeButton,
+        pressed && styles.pressed,
+        disabled && styles.disabled,
+      ]}
+      accessibilityRole="button"
+      accessibilityLabel={accessibilityLabel || label}
+      accessibilityState={{
+        selected: active,
+        disabled,
+      }}
+    >
+      <Icon
+        size={23}
+        color={color}
+        strokeWidth={2}
+      />
+
+      <Text
+        numberOfLines={1}
+        style={[styles.modeLabel, { color }]}
+      >
+        {label}
+      </Text>
+
+      <View
+        style={[
+          styles.modeIndicator,
+          active && styles.activeIndicator,
+        ]}
+      />
+    </Pressable>
+  );
+});
+
+/* -------------------- SPEED BUTTON -------------------- */
+
+const SpeedButton = memo(function SpeedButton() {
+  const speed = usePlaybackStore((s) => s.speed);
+
+  const [visible, setVisible] = useState(false);
+
+  const openModal = useCallback(() => {
+    setVisible(true);
+  }, []);
+
+  const closeModal = useCallback(() => {
+    setVisible(false);
+  }, []);
+
+  return (
+    <>
+      <ModeButton
+        icon={Gauge}
+        label={`${Number(speed.toFixed(2))}×`}
+        active={speed !== 1}
+        onPress={openModal}
+        accessibilityLabel={`Playback speed ${speed} times`}
+      />
+
+      {visible && (
+        <PlaySpeedModal
+          visible={visible}
+          onClose={closeModal}
+        />
+      )}
+    </>
   );
 });
 
 /* -------------------- PLAYBACK MODES -------------------- */
 
-const PlaybackModes = memo(function PlaybackModes() {
-  const { styles } = useThemedStyles(createModesStyles);
-
+const PlaybackModes = memo(function PlaybackModes({ onOpenQueue }) {
+  const { styles } = useThemedStyles(createStyles);
   const shuffle = usePlaybackStore((s) => s.shuffle);
   const repeat = usePlaybackStore((s) => s.repeat);
-
   const { busy, runAction } = usePlaybackAction();
 
   return (
-    <View style={styles.container}>
-      <Pressable
-        onPress={() => runAction(toggleShuffle)}
+    <View style={styles.modes}>
+      <ModeButton
+        icon={Shuffle}
+        label="Shuffle"
+        active={shuffle}
         disabled={busy}
-        style={styles.button}
-        accessibilityRole="button"
+        onPress={() => runAction(toggleShuffle)}
         accessibilityLabel={
           shuffle ? "Disable shuffle" : "Enable shuffle"
         }
-      >
-        <Text style={[
-          styles.icon,
-          shuffle && styles.active,
-        ]}>
-          ⇄
-        </Text>
+      />
 
-        <Text style={styles.label}>
-          {shuffle ? "Shuffle On" : "Shuffle Off"}
-        </Text>
-      </Pressable>
+      <View style={styles.modeDivider} />
 
-      <Pressable
-        onPress={() => runAction(cycleRepeat)}
+      <ModeButton
+        icon={repeat === "one" ? Repeat1 : Repeat}
+        label={REPEAT_LABELS[repeat] || "Repeat"}
+        active={repeat !== "off"}
         disabled={busy}
-        style={styles.button}
-        accessibilityRole="button"
+        onPress={() => runAction(cycleRepeat)}
         accessibilityLabel="Change repeat mode"
-      >
-        <Text style={[
-          styles.icon,
-          repeat !== "off" && styles.active,
-        ]}>
-          {repeat === "one" ? "↻¹" : "↻"}
-        </Text>
+      />
 
-        <Text style={styles.label}>
-          {REPEAT_LABELS[repeat]}
-        </Text>
-      </Pressable>
-    </View>
-  );
-});
+      {onOpenQueue && (
+        <>
+          <View style={styles.modeDivider} />
 
-/* -------------------- PLAYBACK SPEED -------------------- */
+          <ModeButton
+            icon={ListMusic}
+            label="Queue"
+            onPress={onOpenQueue}
+            accessibilityLabel="Open playback queue"
+          />
+        </>
+      )}
 
-const PlaybackSpeed = memo(function PlaybackSpeed() {
-  const { styles } = useThemedStyles(createSpeedStyles);
+      <View style={styles.modeDivider} />
 
-  const speed = usePlaybackStore((s) => s.speed);
-  const { busy, runAction } = usePlaybackAction();
-
-  function changeSpeed(value) {
-    if (value === speed) return;
-
-    return runAction(async () => {
-      try {
-        await setPlaybackSpeed(value);
-      } catch (error) {
-        Alert.alert(
-          "Playback speed error",
-          error?.message || "Unable to change speed."
-        );
-      }
-    });
-  }
-
-  return (
-    <View style={styles.container}>
-      <Text style={styles.label}>Playback Speed</Text>
-
-      <View style={styles.options}>
-        {SPEEDS.map((value) => {
-          const selected = speed === value;
-
-          return (
-            <Pressable
-              key={value}
-              onPress={() => changeSpeed(value)}
-              disabled={busy}
-              accessibilityRole="button"
-              accessibilityState={{
-                selected,
-                disabled: busy,
-              }}
-              style={[
-                styles.option,
-                selected && styles.selected,
-              ]}
-            >
-              <Text style={[
-                styles.optionText,
-                selected && styles.selectedText,
-              ]}>
-                {value}×
-              </Text>
-            </Pressable>
-          );
-        })}
-      </View>
+      <SpeedButton />
     </View>
   );
 });
 
 /* -------------------- COMBINED CONTROLS -------------------- */
 
-export default function PlayerControls() {
+function PlayerControls({ onOpenQueue }) {
+  const { styles } = useThemedStyles(createStyles);
+
   return (
-    <>
+    <View style={styles.container}>
       <PlaybackControls />
-      <PlaybackModes />
-      <PlaybackSpeed />
-    </>
+
+      <PlaybackModes onOpenQueue={onOpenQueue} />
+    </View>
   );
 }
 
+export default memo(PlayerControls);
+
 /* -------------------- STYLES -------------------- */
 
-const createControlsStyles = (colors) =>
+const createStyles = (colors) =>
   StyleSheet.create({
     container: {
+      gap: 20,
+    },
+
+    transport: {
       flexDirection: "row",
       alignItems: "center",
       justifyContent: "center",
       gap: 30,
     },
 
-    button: {
-      padding: 12,
-    },
-
-    icon: {
-      fontSize: 28,
-      color: colors.text,
+    skipButton: {
+      width: 54,
+      height: 54,
+      alignItems: "center",
+      justifyContent: "center",
+      borderRadius: 27,
     },
 
     playButton: {
-      width: 72,
-      height: 72,
-      borderRadius: 36,
+      width: 76,
+      height: 76,
+      borderRadius: 38,
       backgroundColor: colors.primary,
       alignItems: "center",
       justifyContent: "center",
+      elevation: 5,
+      shadowColor: colors.primary,
+      shadowOffset: {
+        width: 0,
+        height: 5,
+      },
+      shadowOpacity: 0.3,
+      shadowRadius: 10,
     },
 
     playIcon: {
-      fontSize: 30,
-      color: colors.onPrimary,
+      marginLeft: 3,
     },
-  });
 
-const createModesStyles = (colors) =>
-  StyleSheet.create({
-    container: {
+    pressed: {
+      opacity: 0.65,
+    },
+
+    disabled: {
+      opacity: 0.5,
+    },
+
+    modes: {
       flexDirection: "row",
-      justifyContent: "space-around",
       alignItems: "center",
-      marginTop: 20,
+      backgroundColor: colors.surfaceAlt,
+      borderRadius: 18,
+      paddingVertical: 8,
+      paddingHorizontal: 4,
     },
 
-    button: {
+    modeButton: {
+      flex: 1,
+      minWidth: 0,
       alignItems: "center",
-      padding: 12,
-    },
-
-    icon: {
-      fontSize: 28,
-      color: colors.muted,
-    },
-
-    active: {
-      color: colors.primary,
-    },
-
-    label: {
-      color: colors.text,
-      fontSize: 12,
-      marginTop: 5,
-    },
-  });
-
-const createSpeedStyles = (colors) =>
-  StyleSheet.create({
-    container: {
-      marginTop: 18,
-    },
-
-    label: {
-      color: colors.muted,
-      fontSize: 13,
-      fontWeight: "600",
-      textAlign: "center",
-      marginBottom: 12,
-    },
-
-    options: {
-      flexDirection: "row",
-      flexWrap: "wrap",
       justifyContent: "center",
+      paddingVertical: 8,
       gap: 6,
     },
 
-    option: {
-      flex: 1,
-      maxWidth: 72,
-      alignItems: "center",
-      paddingVertical: 11,
-      borderRadius: 10,
-      backgroundColor: colors.surface,
-      borderWidth: 1,
-      borderColor: colors.border,
+    modeLabel: {
+      fontSize: 11,
+      fontWeight: "600",
     },
 
-    selected: {
+    modeIndicator: {
+      width: 4,
+      height: 4,
+      borderRadius: 2,
+      backgroundColor: "transparent",
+    },
+
+    activeIndicator: {
       backgroundColor: colors.primary,
-      borderColor: colors.primary,
     },
 
-    optionText: {
-      color: colors.muted,
-      fontSize: 13,
-      fontWeight: "700",
-    },
-
-    selectedText: {
-      color: colors.onPrimary,
+    modeDivider: {
+      width: 1,
+      height: 30,
+      backgroundColor: colors.border,
     },
   });

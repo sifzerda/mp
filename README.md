@@ -14,11 +14,22 @@ react-native-track-player
 
 
 
-commands:
+##commands:
 
-run Metro: adb shell am start -n com.example.androidmusicplayer/.MainActivity
+Terminal 1 — Restart Metro
+Stop the existing Metro server with Ctrl + C, then run:
+cd C:\mp
+npx expo start --dev-client --clear --port 8081
 
-stop Metro: adb shell am force-stop com.example.androidmusicplayer    
+
+Terminal 2 — Restart Android app
+adb reverse tcp:8081 tcp:8081
+adb shell am force-stop com.example.androidmusicplayer
+adb shell am start -n com.example.androidmusicplayer/.MainActivity  
+
+
+
+
 
  @react-native-async-storage/async-storage
 
