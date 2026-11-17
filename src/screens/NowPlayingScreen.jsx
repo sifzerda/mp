@@ -221,5 +221,12 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: "700",
   },
+  
+  artworkContainer: {
+    width: "100%",
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 24,
+  },
 
 });
