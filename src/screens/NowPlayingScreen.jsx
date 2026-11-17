@@ -1,16 +1,28 @@
 // src/screens/NowPlayingScreen.jsx
 
 import { useMemo, useState } from "react";
-import useMusicStore from "../store/useMusicStore";
-import { View, Text, Pressable, StyleSheet } from "react-native";
+import {
+  View,
+  Text,
+  Pressable,
+  StyleSheet,
+} from "react-native";
+
 import Slider from "@react-native-community/slider";
-import TrackPlayer, { useActiveTrack, useProgress } from "react-native-track-player";
+
+import TrackPlayer, {
+  useActiveTrack,
+  useProgress,
+} from "react-native-track-player";
+
 import PlaybackControls from "../components/PlaybackControls";
 import AlbumArtwork from "../components/AlbumArtwork";
 import PlaybackModes from "../components/PlaybackModes";
-import QueueScreen from "./QueueScreen";
 import PlaybackSpeed from "../components/PlaybackSpeed";
 
+import QueueScreen from "./QueueScreen";
+
+import useMusicStore from "../store/useMusicStore";
 import usePlayerStore from "../store/usePlayerStore";
 import useFavoritesStore from "../store/useFavoritesStore";
 
@@ -23,30 +35,51 @@ function formatTime(seconds) {
 }
 
 export default function NowPlayingScreen() {
-  const track = useActiveTrack();
-  const songs = useMusicStore((s) => s.songs);
+  // All hooks must run before conditional returns.
 
   const [showQueue, setShowQueue] = useState(false);
 
-  if (showQueue) {
-    return (
-      <QueueScreen onBack={() => setShowQueue(false)} />
-    );
-  }
+  const track = useActiveTrack();
+  const { position, duration } = useProgress(500);
+
+  const songs = useMusicStore((s) => s.songs);
+  const closePlayer = usePlayerStore((s) => s.closePlayer);
+
+  const favorites = useFavoritesStore((s) => s.favorites);
+  const toggleFavorite = useFavoritesStore((s) => s.toggleFavorite);
 
   const artworkSong = useMemo(() => {
     if (!track) return null;
 
     return (
-      songs.find((song) => String(song.id) === String(track.id)) ||
-      track
+      songs.find(
+        (song) =>
+          String(song.id) === String(track.id) ||
+          song.uri === track.url
+      ) || track
     );
   }, [songs, track]);
-  const { position, duration } = useProgress(500);
-  const closePlayer = usePlayerStore((s) => s.closePlayer);
-  const favorites = useFavoritesStore((s) => s.favorites);
-  const toggleFavorite = useFavoritesStore((s) => s.toggleFavorite);
-  const isFavorite = track ? favorites.includes(String(track.id)) : false;
+
+  const songId = artworkSong?.id ?? track?.id;
+
+  const isFavorite =
+    songId != null && favorites.includes(String(songId));
+
+  const totalDuration = Math.max(
+    0,
+    duration || track?.duration || 0
+  );
+
+  // Conditional screen rendering.
+  // No hooks should appear below this point.
+
+  if (showQueue) {
+    return (
+      <QueueScreen
+        onBack={() => setShowQueue(false)}
+      />
+    );
+  }
 
   if (!track) {
     return (
@@ -54,71 +87,95 @@ export default function NowPlayingScreen() {
         <Pressable onPress={closePlayer}>
           <Text style={styles.back}>‹ Back</Text>
         </Pressable>
-        <Text style={styles.empty}>No song selected</Text>
+
+        <Text style={styles.empty}>
+          No song selected
+        </Text>
       </View>
     );
   }
 
   return (
     <View style={styles.container}>
+      {/* Return to library */}
       <Pressable onPress={closePlayer}>
         <Text style={styles.back}>‹ Library</Text>
       </Pressable>
 
-      {/* Album artwork */}
+      {/* Centered album artwork */}
       <View style={styles.artworkContainer}>
-        <AlbumArtwork song={artworkSong} size={280} borderRadius={24} />
+        <AlbumArtwork
+          song={artworkSong}
+          size={280}
+          borderRadius={24}
+        />
       </View>
 
+      {/* Song title and favorite button */}
       <View style={styles.titleRow}>
         <Text style={styles.title} numberOfLines={2}>
-          {track.title}
+          {track.title || "Unknown title"}
         </Text>
 
         <Pressable
-          onPress={() => toggleFavorite(track.id)}
+          onPress={() =>
+            toggleFavorite(songId).catch(console.error)
+          }
           accessibilityRole="button"
           accessibilityLabel={
-            isFavorite ? "Remove from favorites" : "Add to favorites"
+            isFavorite
+              ? "Remove from favorites"
+              : "Add to favorites"
           }
           style={styles.favoriteButton}
         >
-          <Text style={[
-            styles.heart,
-            isFavorite && styles.activeHeart,
-          ]}>
+          <Text
+            style={[
+              styles.heart,
+              isFavorite && styles.activeHeart,
+            ]}
+          >
             {isFavorite ? "♥" : "♡"}
           </Text>
         </Pressable>
       </View>
 
+      {/* Artist */}
       <Text style={styles.artist}>
         {track.artist || "Unknown artist"}
       </Text>
 
+      {/* Playback progress */}
       <View style={styles.progress}>
         <Slider
           minimumValue={0}
-          maximumValue={Math.max(duration, 1)}
-          value={Math.min(position, Math.max(duration, 1))}
+          maximumValue={Math.max(totalDuration, 1)}
+          value={Math.min(
+            position,
+            Math.max(totalDuration, 1)
+          )}
           minimumTrackTintColor="#00d9ff"
           maximumTrackTintColor="#34485b"
           thumbTintColor="#00d9ff"
+          disabled={totalDuration <= 0}
           onSlidingComplete={(value) =>
-            TrackPlayer.seekTo(value)
+            TrackPlayer.seekTo(value).catch(console.error)
           }
+          accessibilityLabel="Playback position"
         />
 
         <View style={styles.times}>
           <Text style={styles.time}>
             {formatTime(position)}
           </Text>
+
           <Text style={styles.time}>
-            {formatTime(duration)}
+            {formatTime(totalDuration)}
           </Text>
         </View>
       </View>
 
+      {/* Playback queue */}
       <Pressable
         onPress={() => setShowQueue(true)}
         style={styles.queueButton}
@@ -130,6 +187,7 @@ export default function NowPlayingScreen() {
         </Text>
       </Pressable>
 
+      {/* Playback controls */}
       <PlaybackControls />
       <PlaybackModes />
       <PlaybackSpeed />
@@ -144,51 +202,18 @@ const styles = StyleSheet.create({
     padding: 24,
     justifyContent: "center",
   },
+
   back: {
     color: "#00d9ff",
     fontSize: 17,
     marginBottom: 30,
   },
-  artwork: {
+
+  artworkContainer: {
     width: "100%",
-    aspectRatio: 1,
-    maxHeight: 340,
-    backgroundColor: "#172b40",
-    borderRadius: 24,
     alignItems: "center",
     justifyContent: "center",
-    marginBottom: 32,
-  },
-  artworkIcon: {
-    color: "#00d9ff",
-    fontSize: 110,
-  },
-  title: {
-    color: "#ffffff",
-    fontSize: 26,
-    fontWeight: "bold",
-    textAlign: "center",
-  },
-  artist: {
-    color: "#9baec1",
-    fontSize: 16,
-    textAlign: "center",
-    marginTop: 8,
-  },
-  progress: {
-    marginVertical: 35,
-  },
-  times: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-  },
-  time: {
-    color: "#9baec1",
-    fontSize: 13,
-  },
-  empty: {
-    color: "#ffffff",
-    textAlign: "center",
+    marginBottom: 24,
   },
 
   titleRow: {
@@ -197,16 +222,49 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     gap: 12,
   },
+
+  title: {
+    flexShrink: 1,
+    color: "#ffffff",
+    fontSize: 26,
+    fontWeight: "bold",
+    textAlign: "center",
+  },
+
+  artist: {
+    color: "#9baec1",
+    fontSize: 16,
+    textAlign: "center",
+    marginTop: 8,
+  },
+
   favoriteButton: {
     padding: 10,
   },
+
   heart: {
     color: "#ffffff",
     fontSize: 32,
   },
+
   activeHeart: {
     color: "#ff477e",
   },
+
+  progress: {
+    marginVertical: 35,
+  },
+
+  times: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+  },
+
+  time: {
+    color: "#9baec1",
+    fontSize: 13,
+  },
+
   queueButton: {
     alignSelf: "center",
     marginTop: 24,
@@ -221,12 +279,9 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: "700",
   },
-  
-  artworkContainer: {
-    width: "100%",
-    alignItems: "center",
-    justifyContent: "center",
-    marginBottom: 24,
-  },
 
+  empty: {
+    color: "#ffffff",
+    textAlign: "center",
+  },
 });

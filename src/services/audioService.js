@@ -342,7 +342,11 @@ export async function removeQueuedTrack(index) {
   });
 }
 
-export async function moveQueuedTrack(fromIndex, toIndex) {
+export async function moveQueuedTrack(
+  fromIndex,
+  toIndex,
+  expectedTrackId
+) {
   return runQueueOperation(async () => {
     await initializePlayer();
 
@@ -350,6 +354,8 @@ export async function moveQueuedTrack(fromIndex, toIndex) {
     const activeIndex = await TrackPlayer.getActiveTrackIndex();
 
     if (
+      !Number.isInteger(fromIndex) ||
+      !Number.isInteger(toIndex) ||
       activeIndex == null ||
       fromIndex <= activeIndex ||
       toIndex <= activeIndex ||
@@ -357,6 +363,13 @@ export async function moveQueuedTrack(fromIndex, toIndex) {
       toIndex >= queue.length
     ) {
       throw new Error("Only upcoming songs can be reordered");
+    }
+
+    if (
+      expectedTrackId != null &&
+      String(queue[fromIndex].id) !== String(expectedTrackId)
+    ) {
+      throw new Error("The playback queue has changed");
     }
 
     if (fromIndex === toIndex) return;
