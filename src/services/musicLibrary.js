@@ -8,8 +8,24 @@ import {
   requestPermissionsAsync,
 } from "expo-media-library";
 
+import MusicArtwork from "music-artwork";
+
 const PAGE_SIZE = 200;
 const CONCURRENCY = 8;
+
+const collator = new Intl.Collator(undefined, {
+  numeric: true,
+  sensitivity: "base",
+});
+
+const UNKNOWN_FOLDER = Object.freeze({
+  folderId: "unknown",
+  folderName: "Unknown Folder",
+  folderPath: "",
+  folderVolume: "",
+});
+
+/* -------------------- PERMISSIONS -------------------- */
 
 export async function requestMusicPermission() {
   let permission = await getPermissionsAsync(
@@ -30,9 +46,67 @@ export async function requestMusicPermission() {
   return permission.granted;
 }
 
+/* -------------------- FOLDER METADATA -------------------- */
+
+async function getFolderMetadata() {
+  try {
+    return await MusicArtwork.getMusicFolders();
+  } catch (error) {
+    console.warn(
+      "Unable to retrieve music folders:",
+      error?.message
+    );
+
+    return {};
+  }
+}
+
+function resolveFolder(uri, folders) {
+  if (!uri) return UNKNOWN_FOLDER;
+
+  const metadata = folders[uri];
+
+  if (metadata) return metadata;
+
+  // Handle ordinary filesystem paths.
+  if (
+    uri.startsWith("file://") ||
+    uri.startsWith("/")
+  ) {
+    let path = uri.replace(/^file:\/\//, "");
+
+    try {
+      path = decodeURIComponent(path);
+    } catch {
+      // Retain the original path.
+    }
+
+    const folderPath = path.substring(
+      0,
+      path.lastIndexOf("/")
+    );
+
+    if (!folderPath) return UNKNOWN_FOLDER;
+
+    return {
+      folderId: `file:${folderPath}`,
+      folderName:
+        folderPath.split("/").pop() || "Root",
+      folderPath,
+      folderVolume: "",
+    };
+  }
+
+  return UNKNOWN_FOLDER;
+}
+
+/* -------------------- MUSIC SCANNER -------------------- */
+
 export async function getLocalSongs() {
   const songs = [];
   const seen = new Set();
+
+  const folders = await getFolderMetadata();
 
   let offset = 0;
 
@@ -56,8 +130,18 @@ export async function getLocalSongs() {
           .map(async (asset) => {
             const info = await asset.getInfo();
 
-            const filename = info.filename || "Unknown";
-            const title = filename.replace(/\.[^.]+$/, "");
+            const filename =
+              info.filename || "Unknown";
+
+            const title = filename.replace(
+              /\.[^.]+$/,
+              ""
+            );
+
+            const folder = resolveFolder(
+              info.uri,
+              folders
+            );
 
             return {
               id: asset.id,
@@ -68,14 +152,18 @@ export async function getLocalSongs() {
               uri: info.uri,
               duration: info.duration || 0,
               artwork: null,
+
+              ...folder,
             };
           })
       );
 
       for (const song of page) {
-        if (seen.has(String(song.id))) continue;
+        const id = String(song.id);
 
-        seen.add(String(song.id));
+        if (seen.has(id)) continue;
+
+        seen.add(id);
         songs.push(song);
       }
     }
@@ -86,6 +174,6 @@ export async function getLocalSongs() {
   }
 
   return songs.sort((a, b) =>
-    a.title.localeCompare(b.title)
+    collator.compare(a.title, b.title)
   );
 }

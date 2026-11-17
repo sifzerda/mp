@@ -15,6 +15,7 @@ import {
   Music,
   Users,
   Disc3,
+  Folder,
   Heart,
   ListMusic,
 } from "lucide-react-native";
@@ -22,13 +23,18 @@ import {
 import MiniPlayer from "../components/MiniPlayer";
 import useThemedStyles from "../theme/useThemedStyles";
 
+/* -------------------- TAB ICONS -------------------- */
+
 const ICONS = {
   Songs: Music,
   Artists: Users,
   Albums: Disc3,
+  Folders: Folder,
   Favorites: Heart,
   Playlists: ListMusic,
 };
+
+/* -------------------- TAB -------------------- */
 
 const LibraryTab = memo(function LibraryTab({
   route,
@@ -81,16 +87,21 @@ const LibraryTab = memo(function LibraryTab({
 
       <Icon
         color={color}
-        size={23}
+        size={22}
         strokeWidth={focused ? 2.5 : 1.8}
       />
 
-      <Text style={[styles.label, { color }]}>
+      <Text
+        style={[styles.label, { color }]}
+        numberOfLines={1}
+      >
         {label}
       </Text>
     </Pressable>
   );
 });
+
+/* -------------------- TAB BAR -------------------- */
 
 function LibraryTabBar({
   state,
@@ -132,6 +143,8 @@ function LibraryTabBar({
 
 export default memo(LibraryTabBar);
 
+/* -------------------- STYLES -------------------- */
+
 const createStyles = (colors) =>
   StyleSheet.create({
     container: {
@@ -147,6 +160,7 @@ const createStyles = (colors) =>
 
     tab: {
       flex: 1,
+      minWidth: 0,
       minHeight: 52,
       alignItems: "center",
       justifyContent: "center",
@@ -154,14 +168,14 @@ const createStyles = (colors) =>
     },
 
     label: {
-      fontSize: 11,
+      fontSize: 10,
       fontWeight: "600",
     },
 
     indicator: {
       position: "absolute",
       top: -8,
-      width: 30,
+      width: 28,
       height: 3,
       borderRadius: 3,
       backgroundColor: colors.primary,

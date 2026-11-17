@@ -8,11 +8,13 @@ import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import SongsScreen from "../screens/SongsScreen";
 import ArtistsScreen from "../screens/ArtistsScreen";
 import AlbumsScreen from "../screens/AlbumsScreen";
+import FoldersScreen from "../screens/FoldersScreen";
 import FavoritesScreen from "../screens/FavoritesScreen";
 import PlaylistsScreen from "../screens/PlaylistsScreen";
 
 import ArtistDetailScreen from "../screens/ArtistDetailScreen";
 import AlbumDetailScreen from "../screens/AlbumDetailScreen";
+import FolderDetailScreen from "../screens/FolderDetailScreen";
 import PlaylistDetailScreen from "../screens/PlaylistDetailScreen";
 
 import useMusicStore from "../store/useMusicStore";
@@ -23,9 +25,13 @@ import LibraryTabBar from "./LibraryTabBar";
 import useTheme from "../theme/useTheme";
 
 const Tab = createBottomTabNavigator();
+
 const ArtistStack = createNativeStackNavigator();
 const AlbumStack = createNativeStackNavigator();
+const FolderStack = createNativeStackNavigator();
 const PlaylistStack = createNativeStackNavigator();
+
+/* -------------------- STACK OPTIONS -------------------- */
 
 function useStackOptions() {
   const colors = useTheme();
@@ -38,6 +44,8 @@ function useStackOptions() {
     },
   };
 }
+
+/* -------------------- ARTISTS -------------------- */
 
 function ArtistNavigator() {
   const options = useStackOptions();
@@ -57,6 +65,8 @@ function ArtistNavigator() {
   );
 }
 
+/* -------------------- ALBUMS -------------------- */
+
 function AlbumNavigator() {
   const options = useStackOptions();
 
@@ -74,6 +84,28 @@ function AlbumNavigator() {
     </AlbumStack.Navigator>
   );
 }
+
+/* -------------------- FOLDERS -------------------- */
+
+function FolderNavigator() {
+  const options = useStackOptions();
+
+  return (
+    <FolderStack.Navigator screenOptions={options}>
+      <FolderStack.Screen
+        name="FolderList"
+        component={FoldersScreen}
+      />
+
+      <FolderStack.Screen
+        name="FolderDetail"
+        component={FolderDetailScreen}
+      />
+    </FolderStack.Navigator>
+  );
+}
+
+/* -------------------- PLAYLISTS -------------------- */
 
 function PlaylistNavigator() {
   const options = useStackOptions();
@@ -93,12 +125,13 @@ function PlaylistNavigator() {
   );
 }
 
+/* -------------------- LIBRARY -------------------- */
+
 export default function LibraryNavigator() {
   const loadSongs = useMusicStore((s) => s.loadSongs);
   const loadFavorites = useFavoritesStore((s) => s.loadFavorites);
   const loadPlaylists = usePlaylistStore((s) => s.loadPlaylists);
 
-  // Initialize library and persistent storage
   useEffect(() => {
     Promise.allSettled([
       loadSongs(),
@@ -138,6 +171,11 @@ export default function LibraryNavigator() {
       <Tab.Screen
         name="Albums"
         component={AlbumNavigator}
+      />
+
+      <Tab.Screen
+        name="Folders"
+        component={FolderNavigator}
       />
 
       <Tab.Screen

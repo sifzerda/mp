@@ -19,6 +19,7 @@ import {
 
 import {
   UserRound,
+  Folder,
   ChevronRight,
 } from "lucide-react-native";
 
@@ -39,11 +40,24 @@ const keyExtractor = (item) => item.id;
 
 const CollectionRow = memo(function CollectionRow({
   collection,
-  isAlbum,
+  type,
   onSelect,
 }) {
   const { colors, styles } =
     useThemedStyles(createStyles);
+
+  const isAlbum = type === "Albums";
+  const isFolder = type === "Folders";
+
+  const Icon = isFolder ? Folder : UserRound;
+
+  const count = collection.songs.length;
+
+  const songCount = `${count} ${count === 1 ? "song" : "songs"}`;
+
+  const subtitle = isAlbum
+    ? `${collection.artist} · ${songCount}`
+    : songCount;
 
   const handlePress = useCallback(
     () => onSelect(collection),
@@ -63,8 +77,13 @@ const CollectionRow = memo(function CollectionRow({
           borderRadius={10}
         />
       ) : (
-        <View style={styles.artistIcon}>
-          <UserRound
+        <View
+          style={[
+            styles.collectionIcon,
+            !isFolder && styles.roundIcon,
+          ]}
+        >
+          <Icon
             size={27}
             color={colors.primary}
           />
@@ -79,13 +98,21 @@ const CollectionRow = memo(function CollectionRow({
           {collection.name}
         </Text>
 
+        {isFolder && !!collection.path && (
+          <Text
+            style={styles.path}
+            numberOfLines={1}
+            ellipsizeMode="middle"
+          >
+            {collection.path}
+          </Text>
+        )}
+
         <Text
           style={styles.subtitle}
           numberOfLines={1}
         >
-          {isAlbum
-            ? `${collection.artist} · ${collection.songs.length} songs`
-            : `${collection.songs.length} songs`}
+          {subtitle}
         </Text>
       </View>
 
@@ -111,14 +138,11 @@ function CollectionList({
   const loading = useMusicStore((s) => s.loading);
   const loadSongs = useMusicStore((s) => s.loadSongs);
 
-  const isAlbum = type === "Albums";
-
   const items = useMemo(
-    () =>
-      filterCollections(
-        collections,
-        deferredSearch
-      ),
+    () => filterCollections(
+      collections,
+      deferredSearch
+    ),
     [collections, deferredSearch]
   );
 
@@ -126,11 +150,11 @@ function CollectionList({
     ({ item }) => (
       <CollectionRow
         collection={item}
-        isAlbum={isAlbum}
+        type={type}
         onSelect={onSelect}
       />
     ),
-    [isAlbum, onSelect]
+    [type, onSelect]
   );
 
   const emptyState = useMemo(
@@ -203,13 +227,17 @@ const createStyles = (colors) =>
       gap: 14,
     },
 
-    artistIcon: {
+    collectionIcon: {
       width: 58,
       height: 58,
-      borderRadius: 29,
+      borderRadius: 10,
       backgroundColor: colors.surfaceAlt,
       alignItems: "center",
       justifyContent: "center",
+    },
+
+    roundIcon: {
+      borderRadius: 29,
     },
 
     details: {
@@ -221,6 +249,12 @@ const createStyles = (colors) =>
       color: colors.text,
       fontSize: 16,
       fontWeight: "700",
+    },
+
+    path: {
+      color: colors.muted,
+      fontSize: 11,
+      marginTop: 4,
     },
 
     subtitle: {

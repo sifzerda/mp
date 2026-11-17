@@ -1,10 +1,13 @@
 package expo.modules.musicartwork
 
 import android.content.Context
+import android.content.ContentUris
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.media.MediaMetadataRetriever
 import android.net.Uri
+import android.os.Build
+import android.provider.MediaStore
 import expo.modules.kotlin.modules.Module
 import expo.modules.kotlin.modules.ModuleDefinition
 import java.io.File
@@ -16,43 +19,32 @@ class MusicArtworkModule : Module() {
 
   companion object {
     private const val CACHE_DIRECTORY = "music_artwork_v2"
-
-    private const val MAX_CACHE_BYTES =
-      128L * 1024L * 1024L
-
+    private const val MAX_CACHE_BYTES = 128L * 1024L * 1024L
     private const val MAX_CACHE_FILES = 6000
-
     private const val JPEG_QUALITY = 85
-
     private const val PRUNE_INTERVAL = 60_000L
-
     private val cacheLock = Any()
-
     private var lastPruneTime = 0L
   }
+
+  /* -------------------- MODULE DEFINITION -------------------- */
 
   override fun definition() = ModuleDefinition {
     Name("MusicArtwork")
 
+    AsyncFunction("getMusicFolders") {
+      val context = requireNotNull(appContext.reactContext)
+      getMusicFolders(context)
+    }
+
     AsyncFunction("getArtwork") {
       uri: String, size: Int, version: String ->
-
-      val context = requireNotNull(
-        appContext.reactContext
-      )
-
-      extractArtwork(
-        context,
-        uri,
-        size.coerceIn(64, 1024),
-        version
-      )
+      val context = requireNotNull(appContext.reactContext)
+      extractArtwork(context, uri, size.coerceIn(64, 1024), version)
     }
 
     AsyncFunction("clearCache") {
-      val context = requireNotNull(
-        appContext.reactContext
-      )
+      val context = requireNotNull(appContext.reactContext)
 
       synchronized(cacheLock) {
         getCacheDirectory(context).deleteRecursively()
@@ -60,6 +52,106 @@ class MusicArtworkModule : Module() {
       }
     }
   }
+
+  /* -------------------- MUSIC FOLDERS -------------------- */
+
+  private fun getMusicFolders(
+    context: Context
+  ): Map<String, Map<String, String>> {
+
+    val folders = mutableMapOf<String, Map<String, String>>()
+
+    val volumes = if (
+      Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q
+    ) {
+      MediaStore.getExternalVolumeNames(context)
+    } else {
+      setOf("external")
+    }
+
+    val pathColumn = if (
+      Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q
+    ) {
+      MediaStore.MediaColumns.RELATIVE_PATH
+    } else {
+      MediaStore.MediaColumns.DATA
+    }
+
+    val projection = arrayOf(
+      MediaStore.Audio.Media._ID,
+      pathColumn
+    )
+
+    for (volume in volumes) {
+
+      val collection =
+        MediaStore.Audio.Media.getContentUri(volume)
+
+      context.contentResolver.query(
+        collection,
+        projection,
+        null,
+        null,
+        null
+      )?.use { cursor ->
+
+        val idIndex = cursor.getColumnIndexOrThrow(
+          MediaStore.Audio.Media._ID
+        )
+
+        val pathIndex = cursor.getColumnIndexOrThrow(
+          pathColumn
+        )
+
+        while (cursor.moveToNext()) {
+
+          val id = cursor.getLong(idIndex)
+
+          val rawPath = cursor.getString(pathIndex)
+            ?: continue
+
+          val folderPath = if (
+            Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q
+          ) {
+            rawPath.trimEnd('/')
+          } else {
+            File(rawPath).parent ?: continue
+          }
+
+          val folderName = folderPath
+            .substringAfterLast('/')
+            .ifBlank { "Root" }
+
+          val metadata = mapOf(
+            "folderId" to "$volume:$folderPath",
+            "folderName" to folderName,
+            "folderPath" to folderPath,
+            "folderVolume" to volume
+          )
+
+          val uri = ContentUris.withAppendedId(
+            collection,
+            id
+          ).toString()
+
+          folders[uri] = metadata
+
+          if (volume == "external_primary") {
+            val externalUri = ContentUris.withAppendedId(
+              MediaStore.Audio.Media.EXTERNAL_CONTENT_URI,
+              id
+            ).toString()
+
+            folders[externalUri] = metadata
+          }
+        }
+      }
+    }
+
+    return folders
+  }
+
+  /* -------------------- CACHE DIRECTORY -------------------- */
 
   private fun getCacheDirectory(
     context: Context
@@ -80,6 +172,8 @@ class MusicArtworkModule : Module() {
         "%02x".format(it.toInt() and 0xff)
       }
   }
+
+  /* -------------------- ARTWORK EXTRACTION -------------------- */
 
   private fun extractArtwork(
     context: Context,
@@ -144,8 +238,7 @@ class MusicArtworkModule : Module() {
         return null
       }
 
-      // Decode a smaller bitmap instead of
-      // allocating the original full-size image.
+      // Decode a smaller bitmap to reduce memory usage.
       val options = BitmapFactory.Options().apply {
         inSampleSize = calculateSampleSize(
           bounds.outWidth,
@@ -169,8 +262,7 @@ class MusicArtworkModule : Module() {
 
       resizedBitmap = resized
 
-      // Write to a temporary file first to prevent
-      // incomplete cache files from being returned.
+      // Write to a temporary file first.
       val temp = File.createTempFile(
         "artwork_",
         ".tmp",
@@ -223,6 +315,8 @@ class MusicArtworkModule : Module() {
     }
   }
 
+  /* -------------------- IMAGE SAMPLING -------------------- */
+
   private fun calculateSampleSize(
     width: Int,
     height: Int,
@@ -242,6 +336,8 @@ class MusicArtworkModule : Module() {
 
     return sampleSize
   }
+
+  /* -------------------- IMAGE RESIZING -------------------- */
 
   private fun resizeBitmap(
     bitmap: Bitmap,
@@ -277,6 +373,8 @@ class MusicArtworkModule : Module() {
       true
     )
   }
+
+  /* -------------------- CACHE PRUNING -------------------- */
 
   private fun pruneCache(
     directory: File

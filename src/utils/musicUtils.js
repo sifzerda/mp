@@ -8,6 +8,11 @@ const membershipCache = new WeakMap();
 export const EMPTY_SONG_IDS = Object.freeze([]);
 export const EMPTY_SONGS = Object.freeze([]);
 
+const collator = new Intl.Collator(undefined, {
+  numeric: true,
+  sensitivity: "base",
+});
+
 /* -------------------- NORMALIZATION -------------------- */
 
 function normalize(value) {
@@ -18,16 +23,30 @@ function normalizeQuery(query) {
   return normalize(query).trim();
 }
 
+/* -------------------- METADATA -------------------- */
+
 export function getArtist(song) {
-  return (String(song.artist ?? "").trim() || "Unknown artist");
+  return String(song.artist ?? "").trim() || "Unknown artist";
 }
 
 export function getAlbum(song) {
-  return (String(song.album ?? "").trim() || "Unknown album");
+  return String(song.album ?? "").trim() || "Unknown album";
 }
 
 export function getAlbumId(artist, album) {
   return JSON.stringify([artist, album]);
+}
+
+export function getFolderName(song) {
+  return String(song.folderName ?? "").trim() || "Unknown Folder";
+}
+
+export function getFolderPath(song) {
+  return String(song.folderPath ?? "");
+}
+
+export function getFolderId(song) {
+  return song.folderId || "unknown";
 }
 
 /* -------------------- SEARCH CACHE -------------------- */
@@ -44,15 +63,14 @@ function getSearchValues(item, cache, createValues) {
 }
 
 function getSongSearchValues(song) {
-  return getSearchValues(
-    song,
-    songSearchCache,
-    (item) => [
-      item.title,
-      item.artist,
-      item.album,
-    ]
-  );
+  return getSearchValues(song, songSearchCache, (item) => [
+    item.title,
+    item.artist,
+    item.album,
+    item.filename,
+    item.folderName,
+    item.folderPath,
+  ]);
 }
 
 function getCollectionSearchValues(collection) {
@@ -62,20 +80,20 @@ function getCollectionSearchValues(collection) {
     (item) => [
       item.name,
       item.artist,
+      item.path,
     ]
   );
 }
 
-/* -------------------- LIBRARY INDEX -------------------- */
+/* -------------------- COLLECTION GROUPING -------------------- */
 
-function addToGroup(groups, id, name, artist, song) {
+function addToGroup(groups, id, metadata, song) {
   let group = groups.get(id);
 
   if (!group) {
     group = {
       id,
-      name,
-      artist,
+      ...metadata,
       songs: [],
     };
 
@@ -86,16 +104,22 @@ function addToGroup(groups, id, name, artist, song) {
 }
 
 function sortCollections(groups) {
-  return Array.from(groups.values()).sort((a, b) =>
-    a.name.localeCompare(b.name)
+  return Array.from(groups.values()).sort(
+    (a, b) =>
+      collator.compare(a.name, b.name) ||
+      collator.compare(a.path ?? "", b.path ?? "")
   );
 }
+
+/* -------------------- LIBRARY INDEX -------------------- */
 
 export function createLibraryIndex(songs) {
   const songsById = new Map();
   const songsByUri = new Map();
+
   const artistsById = new Map();
   const albumsById = new Map();
+  const foldersById = new Map();
 
   for (const song of songs) {
     const artist = getArtist(song);
@@ -107,19 +131,37 @@ export function createLibraryIndex(songs) {
       songsByUri.set(song.uri, song);
     }
 
+    // Artists
     addToGroup(
       artistsById,
       artist,
-      artist,
-      null,
+      {
+        name: artist,
+        artist: null,
+      },
       song
     );
 
+    // Albums
     addToGroup(
       albumsById,
       getAlbumId(artist, album),
-      album,
-      artist,
+      {
+        name: album,
+        artist,
+      },
+      song
+    );
+
+    // Folders
+    addToGroup(
+      foldersById,
+      getFolderId(song),
+      {
+        name: getFolderName(song),
+        path: getFolderPath(song),
+        volume: song.folderVolume ?? "",
+      },
       song
     );
   }
@@ -127,10 +169,14 @@ export function createLibraryIndex(songs) {
   return {
     songsById,
     songsByUri,
+
     artistsById,
     albumsById,
+    foldersById,
+
     artists: sortCollections(artistsById),
     albums: sortCollections(albumsById),
+    folders: sortCollections(foldersById),
   };
 }
 
@@ -165,13 +211,13 @@ export function filterCollections(collections, query) {
   if (!normalized) return collections;
 
   return collections.filter((collection) =>
-    getCollectionSearchValues(collection).some(
-      (value) => value.includes(normalized)
+    getCollectionSearchValues(collection).some((value) =>
+      value.includes(normalized)
     )
   );
 }
 
-/* -------------------- PLAYLISTS -------------------- */
+/* -------------------- PLAYLIST UTILITIES -------------------- */
 
 export function normalizeSongIds(ids) {
   if (!Array.isArray(ids)) return [];
@@ -199,6 +245,7 @@ export function getSongIdSet(songIds) {
 
   if (!ids) {
     ids = new Set(songIds.map(String));
+
     membershipCache.set(songIds, ids);
   }
 
@@ -252,7 +299,7 @@ export function resolvePlaylistSongs(songIds, songsById) {
   return result;
 }
 
-/* -------------------- TIME FORMATTING -------------------- */
+/* -------------------- FORMATTING -------------------- */
 
 export function formatTime(seconds) {
   const total = Math.floor(
