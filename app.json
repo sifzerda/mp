@@ -1,4 +1,3 @@
-
 {
   "expo": {
     "name": "Music Player",
@@ -6,8 +5,13 @@
     "version": "1.0.0",
     "orientation": "portrait",
     "userInterfaceStyle": "dark",
+    "icon": "./assets/icon.png",
     "android": {
       "package": "com.example.androidmusicplayer",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#06234D"
+      },
       "permissions": [
         "READ_MEDIA_AUDIO",
         "READ_EXTERNAL_STORAGE"
@@ -17,7 +21,9 @@
       [
         "expo-media-library",
         {
-          "granularPermissions": ["audio"]
+          "granularPermissions": [
+            "audio"
+          ]
         }
       ]
     ]

@@ -24,19 +24,65 @@ import AlbumArtwork from "../components/AlbumArtwork";
 import useCurrentSong from "../hooks/useCurrentSong";
 import useThemedStyles from "../theme/useThemedStyles";
 
+import {
+  formatMetadata,
+  getYear,
+  getTrackNumber,
+  getDiscNumber,
+} from "../utils/musicUtils";
+
 function NowPlayingScreen({ navigation }) {
-  const { colors, styles } = useThemedStyles(createStyles);
+  const { colors, styles } =
+    useThemedStyles(createStyles);
 
   const { width, height } = useWindowDimensions();
 
   const track = useActiveTrack();
-  const artworkSong = useCurrentSong(track);
+  const song = useCurrentSong(track);
   const isFocused = useIsFocused();
 
   const artworkSize = Math.min(
     width - 48,
     height * 0.36,
     400
+  );
+
+  const metadata = song ?? track ?? {};
+
+  const title =
+    song?.title ||
+    track?.title ||
+    "Unknown Title";
+
+  const artist =
+    song?.artist ||
+    track?.artist ||
+    "Unknown Artist";
+
+  const album =
+    song?.album ||
+    track?.album ||
+    "";
+
+  const year = getYear(metadata);
+  const trackNumber = getTrackNumber(metadata);
+  const discNumber = getDiscNumber(metadata);
+
+  const albumInfo = formatMetadata(
+    album,
+    year
+  );
+
+  const trackInfo = formatMetadata(
+    discNumber > 1
+      ? `Disc ${discNumber}`
+      : null,
+
+    trackNumber != null
+      ? `Track ${trackNumber}`
+      : null,
+
+    metadata.genre
   );
 
   const closePlayer = useCallback(() => {
@@ -101,7 +147,7 @@ function NowPlayingScreen({ navigation }) {
           <View style={styles.artworkContainer}>
             <View style={styles.artworkShadow}>
               <AlbumArtwork
-                song={artworkSong}
+                song={song}
                 size={artworkSize}
                 borderRadius={20}
               />
@@ -113,15 +159,33 @@ function NowPlayingScreen({ navigation }) {
               style={styles.title}
               numberOfLines={2}
             >
-              {track.title || "Unknown title"}
+              {title}
             </Text>
 
             <Text
               style={styles.artist}
               numberOfLines={1}
             >
-              {track.artist || "Unknown artist"}
+              {artist}
             </Text>
+
+            {!!albumInfo && (
+              <Text
+                style={styles.album}
+                numberOfLines={1}
+              >
+                {albumInfo}
+              </Text>
+            )}
+
+            {!!trackInfo && (
+              <Text
+                style={styles.metadata}
+                numberOfLines={1}
+              >
+                {trackInfo}
+              </Text>
+            )}
           </View>
 
           <PlaybackProgress
@@ -236,6 +300,16 @@ const createStyles = (colors) =>
       color: colors.muted,
       fontSize: 15,
       fontWeight: "500",
+    },
+
+    album: {
+      color: colors.muted,
+      fontSize: 13,
+    },
+
+    metadata: {
+      color: colors.muted,
+      fontSize: 11,
     },
 
     emptyContainer: {

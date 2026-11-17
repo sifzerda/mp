@@ -48,13 +48,38 @@ export function normalizeSong(song) {
     throw new Error("Song has no playable file URI");
   }
 
+  const id = getSongId(song);
+
   return {
-    id: getSongId(song),
+    id,
+    songId: song.songId ?? id,
     url,
-    title: song.title ?? song.filename ?? "Unknown title",
-    artist: song.artist ?? "Unknown artist",
-    album: song.album ?? "Unknown album",
+
+    title: song.title || song.filename || "Unknown Title",
+    artist: song.artist || "Unknown Artist",
+    album: song.album || "Unknown Album",
+    albumArtist: song.albumArtist || song.artist || "",
+
+    year: song.year ?? null,
+    trackNumber: song.trackNumber ?? null,
+    discNumber: song.discNumber ?? null,
+
+    genre: song.genre || "",
+    composer: song.composer || "",
+
+    bitrate: song.bitrate ?? null,
+    mimeType: song.mimeType || "",
+
     duration: Number(song.duration) || 0,
+
+    filename: song.filename || "",
+    modificationTime: song.modificationTime ?? null,
+
+    folderId: song.folderId ?? "unknown",
+    folderName: song.folderName || "",
+    folderPath: song.folderPath || "",
+    folderVolume: song.folderVolume || "",
+
     ...(song.artwork ? { artwork: song.artwork } : {}),
   };
 }

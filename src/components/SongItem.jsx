@@ -25,19 +25,14 @@ import {
 import useThemedStyles from "../theme/useThemedStyles";
 import AlbumArtwork from "./AlbumArtwork";
 
-/* -------------------- HELPERS -------------------- */
-
-function formatDuration(seconds) {
-  const total = Math.max(
-    0,
-    Math.floor(Number(seconds) || 0)
-  );
-
-  const minutes = Math.floor(total / 60);
-  const remaining = total % 60;
-
-  return `${minutes}:${String(remaining).padStart(2, "0")}`;
-}
+import {
+  getArtist,
+  getAlbum,
+  getYear,
+  getTrackNumber,
+  formatTime,
+  formatMetadata,
+} from "../utils/musicUtils";
 
 /* -------------------- SONG INFORMATION -------------------- */
 
@@ -46,6 +41,22 @@ const SongInformation = memo(function SongInformation({
   styles,
   onPress,
 }) {
+  const trackNumber = getTrackNumber(song);
+
+  const subtitle = formatMetadata(
+    getArtist(song),
+    getAlbum(song)
+  );
+
+  const details = formatMetadata(
+    trackNumber != null
+      ? `Track ${trackNumber}`
+      : null,
+
+    getYear(song),
+    formatTime(song.duration)
+  );
+
   return (
     <Pressable
       onPress={onPress}
@@ -53,6 +64,8 @@ const SongInformation = memo(function SongInformation({
         styles.songButton,
         pressed && styles.pressed,
       ]}
+      accessibilityRole="button"
+      accessibilityLabel={`Play ${song.title || "song"}`}
     >
       <AlbumArtwork
         song={song}
@@ -62,15 +75,15 @@ const SongInformation = memo(function SongInformation({
 
       <View style={styles.info}>
         <Text style={styles.title} numberOfLines={1}>
-          {song.title || "Unknown title"}
+          {song.title || "Unknown Title"}
         </Text>
 
         <Text style={styles.artist} numberOfLines={1}>
-          {song.artist || "Unknown artist"}
+          {subtitle}
         </Text>
 
-        <Text style={styles.duration}>
-          {formatDuration(song.duration)}
+        <Text style={styles.duration} numberOfLines={1}>
+          {details}
         </Text>
       </View>
     </Pressable>
@@ -114,7 +127,18 @@ function SongOptionsMenu({
             style={styles.menuTitle}
             numberOfLines={2}
           >
-            {song.title || "Unknown title"}
+            {song.title || "Unknown Title"}
+          </Text>
+
+          <Text
+            style={styles.menuSubtitle}
+            numberOfLines={2}
+          >
+            {formatMetadata(
+              getArtist(song),
+              getAlbum(song),
+              getYear(song)
+            )}
           </Text>
 
           {onPlayNext && (
@@ -173,7 +197,8 @@ function SongItem({
   onPlayNext,
   onAddToQueue,
 }) {
-  const { colors, styles } = useThemedStyles(createStyles);
+  const { colors, styles } =
+    useThemedStyles(createStyles);
 
   const [menuVisible, setMenuVisible] = useState(false);
 
@@ -322,6 +347,12 @@ const createStyles = (colors) =>
       color: colors.text,
       fontSize: 18,
       fontWeight: "700",
+      marginBottom: 5,
+    },
+
+    menuSubtitle: {
+      color: colors.muted,
+      fontSize: 12,
       marginBottom: 14,
     },
 

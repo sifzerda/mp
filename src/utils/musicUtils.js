@@ -23,14 +23,46 @@ function normalizeQuery(query) {
   return normalize(query).trim();
 }
 
+function readText(value) {
+  return String(value ?? "").trim();
+}
+
+function positiveInteger(value) {
+  const number = Number(value);
+
+  return Number.isInteger(number) && number > 0
+    ? number
+    : null;
+}
+
 /* -------------------- METADATA -------------------- */
 
 export function getArtist(song) {
-  return String(song.artist ?? "").trim() || "Unknown artist";
+  return readText(song.artist) || "Unknown Artist";
 }
 
 export function getAlbum(song) {
-  return String(song.album ?? "").trim() || "Unknown album";
+  return readText(song.album) || "Unknown Album";
+}
+
+export function getAlbumArtist(song) {
+  return readText(song.albumArtist) || getArtist(song);
+}
+
+export function getYear(song) {
+  const year = positiveInteger(song.year);
+
+  return year >= 1000 && year <= 9999
+    ? year
+    : null;
+}
+
+export function getTrackNumber(song) {
+  return positiveInteger(song.trackNumber);
+}
+
+export function getDiscNumber(song) {
+  return positiveInteger(song.discNumber);
 }
 
 export function getAlbumId(artist, album) {
@@ -38,7 +70,7 @@ export function getAlbumId(artist, album) {
 }
 
 export function getFolderName(song) {
-  return String(song.folderName ?? "").trim() || "Unknown Folder";
+  return readText(song.folderName) || "Unknown Folder";
 }
 
 export function getFolderPath(song) {
@@ -49,13 +81,66 @@ export function getFolderId(song) {
   return song.folderId || "unknown";
 }
 
+/* -------------------- FORMATTING -------------------- */
+
+export function formatMetadata(...values) {
+  return values
+    .filter((value) => value != null)
+    .map(readText)
+    .filter(Boolean)
+    .join(" · ");
+}
+
+export function formatSongCount(count) {
+  return `${count} ${count === 1 ? "song" : "songs"}`;
+}
+
+export function formatTime(seconds) {
+  const total = Math.floor(
+    Math.max(0, Number(seconds) || 0)
+  );
+
+  const minutes = Math.floor(total / 60);
+  const remaining = total % 60;
+
+  return `${minutes}:${String(remaining).padStart(2, "0")}`;
+}
+
+/* -------------------- SORTING -------------------- */
+
+export function compareSongTitles(a, b) {
+  return collator.compare(
+    a.title ?? "",
+    b.title ?? ""
+  );
+}
+
+export function compareAlbumTracks(a, b) {
+  return (
+    (getDiscNumber(a) ?? 1) -
+      (getDiscNumber(b) ?? 1) ||
+
+    (getTrackNumber(a) ?? Infinity) -
+      (getTrackNumber(b) ?? Infinity) ||
+
+    compareSongTitles(a, b)
+  );
+}
+
+export function sortAlbumSongs(songs) {
+  return [...songs].sort(compareAlbumTracks);
+}
+
 /* -------------------- SEARCH CACHE -------------------- */
 
 function getSearchValues(item, cache, createValues) {
   let values = cache.get(item);
 
   if (!values) {
-    values = createValues(item).map(normalize);
+    values = createValues(item)
+      .filter((value) => value != null)
+      .map(normalize);
+
     cache.set(item, values);
   }
 
@@ -67,6 +152,10 @@ function getSongSearchValues(song) {
     item.title,
     item.artist,
     item.album,
+    item.albumArtist,
+    item.year,
+    item.genre,
+    item.composer,
     item.filename,
     item.folderName,
     item.folderPath,
@@ -80,6 +169,7 @@ function getCollectionSearchValues(collection) {
     (item) => [
       item.name,
       item.artist,
+      item.year,
       item.path,
     ]
   );
@@ -101,12 +191,15 @@ function addToGroup(groups, id, metadata, song) {
   }
 
   group.songs.push(song);
+
+  return group;
 }
 
 function sortCollections(groups) {
   return Array.from(groups.values()).sort(
     (a, b) =>
       collator.compare(a.name, b.name) ||
+      collator.compare(a.artist ?? "", b.artist ?? "") ||
       collator.compare(a.path ?? "", b.path ?? "")
   );
 }
@@ -124,6 +217,8 @@ export function createLibraryIndex(songs) {
   for (const song of songs) {
     const artist = getArtist(song);
     const album = getAlbum(song);
+    const albumArtist = getAlbumArtist(song);
+    const year = getYear(song);
 
     songsById.set(String(song.id), song);
 
@@ -131,7 +226,8 @@ export function createLibraryIndex(songs) {
       songsByUri.set(song.uri, song);
     }
 
-    // Artists
+    /* Artists */
+
     addToGroup(
       artistsById,
       artist,
@@ -142,18 +238,25 @@ export function createLibraryIndex(songs) {
       song
     );
 
-    // Albums
-    addToGroup(
+    /* Albums */
+
+    const albumGroup = addToGroup(
       albumsById,
-      getAlbumId(artist, album),
+      getAlbumId(albumArtist, album),
       {
         name: album,
-        artist,
+        artist: albumArtist,
+        year,
       },
       song
     );
 
-    // Folders
+    if (albumGroup.year == null && year != null) {
+      albumGroup.year = year;
+    }
+
+    /* Folders */
+
     addToGroup(
       foldersById,
       getFolderId(song),
@@ -164,6 +267,11 @@ export function createLibraryIndex(songs) {
       },
       song
     );
+  }
+
+  // Sort each album once when building the index.
+  for (const album of albumsById.values()) {
+    album.songs.sort(compareAlbumTracks);
   }
 
   return {
@@ -245,7 +353,6 @@ export function getSongIdSet(songIds) {
 
   if (!ids) {
     ids = new Set(songIds.map(String));
-
     membershipCache.set(songIds, ids);
   }
 
@@ -297,17 +404,4 @@ export function resolvePlaylistSongs(songIds, songsById) {
   }
 
   return result;
-}
-
-/* -------------------- FORMATTING -------------------- */
-
-export function formatTime(seconds) {
-  const total = Math.floor(
-    Math.max(0, Number(seconds) || 0)
-  );
-
-  const minutes = Math.floor(total / 60);
-  const remaining = total % 60;
-
-  return `${minutes}:${String(remaining).padStart(2, "0")}`;
 }

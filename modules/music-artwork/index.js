@@ -13,6 +13,10 @@ export default {
     );
   },
 
+  getMetadata(uri) {
+    return MusicArtwork.getMetadata(uri);
+  },
+
   getMusicFolders() {
     return MusicArtwork.getMusicFolders();
   },

@@ -32,6 +32,11 @@ class MusicArtworkModule : Module() {
   override fun definition() = ModuleDefinition {
     Name("MusicArtwork")
 
+    AsyncFunction("getMetadata") { uri: String ->
+  val context = requireNotNull(appContext.reactContext)
+  extractMetadata(context, uri)
+}
+
     AsyncFunction("getMusicFolders") {
       val context = requireNotNull(appContext.reactContext)
       getMusicFolders(context)
@@ -51,6 +56,112 @@ class MusicArtworkModule : Module() {
         lastPruneTime = 0L
       }
     }
+  }
+
+    /* -------------------- AUDIO METADATA -------------------- */
+
+  private fun extractMetadata(
+    context: Context,
+    uri: String
+  ): Map<String, Any> {
+
+    val retriever = MediaMetadataRetriever()
+    val metadata = mutableMapOf<String, Any>()
+
+    try {
+      retriever.setDataSource(
+        context,
+        Uri.parse(uri)
+      )
+
+      fun read(key: Int): String? {
+        return retriever.extractMetadata(key)
+          ?.trim()
+          ?.takeIf { it.isNotEmpty() }
+      }
+
+      val textFields = mapOf(
+        "title" to MediaMetadataRetriever.METADATA_KEY_TITLE,
+        "artist" to MediaMetadataRetriever.METADATA_KEY_ARTIST,
+        "album" to MediaMetadataRetriever.METADATA_KEY_ALBUM,
+        "albumArtist" to MediaMetadataRetriever.METADATA_KEY_ALBUMARTIST,
+        "genre" to MediaMetadataRetriever.METADATA_KEY_GENRE,
+        "composer" to MediaMetadataRetriever.METADATA_KEY_COMPOSER,
+        "mimeType" to MediaMetadataRetriever.METADATA_KEY_MIMETYPE
+      )
+
+      for ((name, key) in textFields) {
+        read(key)?.let {
+          metadata[name] = it
+        }
+      }
+
+      val year = parseYear(
+        read(MediaMetadataRetriever.METADATA_KEY_YEAR)
+          ?: read(MediaMetadataRetriever.METADATA_KEY_DATE)
+      )
+
+      year?.let {
+        metadata["year"] = it
+      }
+
+      parseNumber(
+        read(MediaMetadataRetriever.METADATA_KEY_CD_TRACK_NUMBER)
+      )?.let {
+        metadata["trackNumber"] = it
+      }
+
+      parseNumber(
+        read(MediaMetadataRetriever.METADATA_KEY_DISC_NUMBER)
+      )?.let {
+        metadata["discNumber"] = it
+      }
+
+      read(
+        MediaMetadataRetriever.METADATA_KEY_DURATION
+      )?.toLongOrNull()?.let {
+        if (it > 0L) {
+          metadata["duration"] = it / 1000.0
+        }
+      }
+
+      read(
+        MediaMetadataRetriever.METADATA_KEY_BITRATE
+      )?.toIntOrNull()?.let {
+        metadata["bitrate"] = it
+      }
+
+    } catch (error: Exception) {
+      android.util.Log.w(
+        "MusicArtwork",
+        "Unable to extract audio metadata",
+        error
+      )
+    } finally {
+      runCatching {
+        retriever.release()
+      }
+    }
+
+    return metadata
+  }
+
+  private fun parseNumber(value: String?): Int? {
+    return value
+      ?.substringBefore("/")
+      ?.trim()
+      ?.toIntOrNull()
+      ?.takeIf { it > 0 }
+  }
+
+  private fun parseYear(value: String?): Int? {
+    if (value.isNullOrBlank()) return null
+
+    return Regex("""\d{4}""")
+      .find(value)
+      ?.value
+      ?.toIntOrNull()
+      ?.takeIf { it in 1000..9999 }
   }
 
   /* -------------------- MUSIC FOLDERS -------------------- */

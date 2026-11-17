@@ -4,16 +4,26 @@ import useMusicStore from "../store/useMusicStore";
 
 export default function useCurrentSong(track) {
   const id = track?.id;
-  const uri = track?.url;
+  const songId = track?.songId;
+  const uri = track?.uri ?? track?.url;
 
   const song = useMusicStore((state) => {
-    if (!track) return null;
-
-    const { songsById, songsByUri } = state.libraryIndex;
+    const { songsById, songsByUri } =
+      state.libraryIndex;
 
     return (
-      songsById.get(String(id)) ??
-      songsByUri.get(uri) ??
+      (songId != null
+        ? songsById.get(String(songId))
+        : undefined) ??
+
+      (id != null
+        ? songsById.get(String(id))
+        : undefined) ??
+
+      (uri
+        ? songsByUri.get(uri)
+        : undefined) ??
+
       null
     );
   });

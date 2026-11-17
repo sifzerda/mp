@@ -1,5 +1,4 @@
 // src/components/CollectionList.jsx
-// shared by Artists and Albums
 
 import {
   memo,
@@ -30,7 +29,11 @@ import LibraryEmptyState from "./LibraryEmptyState";
 import useMusicStore from "../store/useMusicStore";
 import useThemedStyles from "../theme/useThemedStyles";
 
-import { filterCollections } from "../utils/musicUtils";
+import {
+  filterCollections,
+  formatMetadata,
+  formatSongCount,
+} from "../utils/musicUtils";
 
 /* -------------------- LIST HELPERS -------------------- */
 
@@ -51,12 +54,16 @@ const CollectionRow = memo(function CollectionRow({
 
   const Icon = isFolder ? Folder : UserRound;
 
-  const count = collection.songs.length;
-
-  const songCount = `${count} ${count === 1 ? "song" : "songs"}`;
+  const songCount = formatSongCount(
+    collection.songs.length
+  );
 
   const subtitle = isAlbum
-    ? `${collection.artist} · ${songCount}`
+    ? formatMetadata(
+        collection.artist,
+        collection.year,
+        songCount
+      )
     : songCount;
 
   const handlePress = useCallback(
@@ -110,7 +117,7 @@ const CollectionRow = memo(function CollectionRow({
 
         <Text
           style={styles.subtitle}
-          numberOfLines={1}
+          numberOfLines={2}
         >
           {subtitle}
         </Text>

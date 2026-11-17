@@ -8,10 +8,13 @@ import {
   requestPermissionsAsync,
 } from "expo-media-library";
 
+import AsyncStorage from "@react-native-async-storage/async-storage";
+
 import MusicArtwork from "music-artwork";
 
 const PAGE_SIZE = 200;
-const CONCURRENCY = 8;
+const CONCURRENCY = 4;
+const CACHE_KEY = "music-metadata-cache-v1";
 
 const collator = new Intl.Collator(undefined, {
   numeric: true,
@@ -46,6 +49,103 @@ export async function requestMusicPermission() {
   return permission.granted;
 }
 
+/* -------------------- METADATA CACHE -------------------- */
+
+async function loadMetadataCache() {
+  try {
+    const stored = await AsyncStorage.getItem(
+      CACHE_KEY
+    );
+
+    return new Map(
+      stored ? Object.entries(JSON.parse(stored)) : []
+    );
+  } catch {
+    return new Map();
+  }
+}
+
+async function saveMetadataCache(cache) {
+  try {
+    await AsyncStorage.setItem(
+      CACHE_KEY,
+      JSON.stringify(Object.fromEntries(cache))
+    );
+  } catch (error) {
+    console.warn(
+      "Unable to save metadata cache:",
+      error?.message
+    );
+  }
+}
+
+export async function clearMetadataCache() {
+  await AsyncStorage.removeItem(CACHE_KEY);
+}
+
+function getFileVersion(info) {
+  const modified =
+    info.modificationTime ??
+    info.modificationDate ??
+    info.modifiedTime;
+
+  if (!modified) return null;
+
+  return [
+    info.filename,
+    modified,
+    info.fileSize ?? info.size ?? "",
+  ].join("|");
+}
+
+/* -------------------- AUDIO METADATA -------------------- */
+
+async function resolveMetadata(
+  info,
+  cache,
+  nextCache
+) {
+  const uri = info.uri;
+
+  if (!uri) return {};
+
+  const version = getFileVersion(info);
+  const cached = cache.get(uri);
+
+  if (
+    version !== null &&
+    cached?.version === version
+  ) {
+    nextCache.set(uri, cached);
+    return cached.metadata;
+  }
+
+  try {
+    const metadata =
+      (await MusicArtwork.getMetadata(uri)) || {};
+
+    if (
+      version !== null &&
+      Object.keys(metadata).length > 0
+    ) {
+      nextCache.set(uri, {
+        version,
+        metadata,
+      });
+    }
+
+    return metadata;
+
+  } catch (error) {
+    console.warn(
+      "Unable to retrieve song metadata:",
+      error?.message
+    );
+
+    return {};
+  }
+}
+
 /* -------------------- FOLDER METADATA -------------------- */
 
 async function getFolderMetadata() {
@@ -68,7 +168,6 @@ function resolveFolder(uri, folders) {
 
   if (metadata) return metadata;
 
-  // Handle ordinary filesystem paths.
   if (
     uri.startsWith("file://") ||
     uri.startsWith("/")
@@ -78,7 +177,7 @@ function resolveFolder(uri, folders) {
     try {
       path = decodeURIComponent(path);
     } catch {
-      // Retain the original path.
+      // Retain original path.
     }
 
     const folderPath = path.substring(
@@ -100,19 +199,88 @@ function resolveFolder(uri, folders) {
   return UNKNOWN_FOLDER;
 }
 
+/* -------------------- SONG NORMALIZATION -------------------- */
+
+function normalizeSong(asset, info, metadata, folders) {
+  const filename = info.filename || "Unknown";
+
+  const fallbackTitle = filename.replace(
+    /\.[^.]+$/,
+    ""
+  );
+
+  return {
+    id: asset.id,
+
+    title:
+      metadata.title ||
+      fallbackTitle,
+
+    artist:
+      metadata.artist ||
+      metadata.albumArtist ||
+      "Unknown Artist",
+
+    album:
+      metadata.album ||
+      "Unknown Album",
+
+    albumArtist:
+      metadata.albumArtist ||
+      metadata.artist ||
+      "Unknown Artist",
+
+    year: metadata.year ?? null,
+    trackNumber: metadata.trackNumber ?? null,
+    discNumber: metadata.discNumber ?? null,
+
+    genre: metadata.genre || "",
+    composer: metadata.composer || "",
+
+    bitrate: metadata.bitrate ?? null,
+    mimeType: metadata.mimeType || "",
+
+    filename,
+    uri: info.uri,
+
+    duration:
+      metadata.duration ||
+      info.duration ||
+      0,
+
+    artwork: null,
+
+    modificationTime:
+      info.modificationTime ??
+      info.modificationDate ??
+      info.modifiedTime ??
+      null,
+
+    ...resolveFolder(info.uri, folders),
+  };
+}
+
 /* -------------------- MUSIC SCANNER -------------------- */
 
 export async function getLocalSongs() {
   const songs = [];
   const seen = new Set();
 
-  const folders = await getFolderMetadata();
+  const [folders, cache] = await Promise.all([
+    getFolderMetadata(),
+    loadMetadataCache(),
+  ]);
+
+  const nextCache = new Map();
 
   let offset = 0;
 
   while (true) {
     const assets = await new Query()
-      .eq(AssetField.MEDIA_TYPE, MediaType.AUDIO)
+      .eq(
+        AssetField.MEDIA_TYPE,
+        MediaType.AUDIO
+      )
       .limit(PAGE_SIZE)
       .offset(offset)
       .exe();
@@ -128,37 +296,38 @@ export async function getLocalSongs() {
         assets
           .slice(i, i + CONCURRENCY)
           .map(async (asset) => {
-            const info = await asset.getInfo();
+            try {
+              const info = await asset.getInfo();
 
-            const filename =
-              info.filename || "Unknown";
+              if (!info.uri) return null;
 
-            const title = filename.replace(
-              /\.[^.]+$/,
-              ""
-            );
+              const metadata = await resolveMetadata(
+                info,
+                cache,
+                nextCache
+              );
 
-            const folder = resolveFolder(
-              info.uri,
-              folders
-            );
+              return normalizeSong(
+                asset,
+                info,
+                metadata,
+                folders
+              );
 
-            return {
-              id: asset.id,
-              title,
-              artist: "Unknown Artist",
-              album: "Unknown Album",
-              filename,
-              uri: info.uri,
-              duration: info.duration || 0,
-              artwork: null,
+            } catch (error) {
+              console.warn(
+                "Unable to read audio file:",
+                error?.message
+              );
 
-              ...folder,
-            };
+              return null;
+            }
           })
       );
 
       for (const song of page) {
+        if (!song) continue;
+
         const id = String(song.id);
 
         if (seen.has(id)) continue;
@@ -173,7 +342,23 @@ export async function getLocalSongs() {
     if (assets.length < PAGE_SIZE) break;
   }
 
+  await saveMetadataCache(nextCache);
+
   return songs.sort((a, b) =>
+    collator.compare(a.title, b.title)
+  );
+}
+
+/* -------------------- ALBUM TRACK SORTING -------------------- */
+
+export function sortAlbumSongs(songs) {
+  return [...songs].sort((a, b) =>
+    (a.discNumber ?? 1) -
+      (b.discNumber ?? 1) ||
+
+    (a.trackNumber ?? Infinity) -
+      (b.trackNumber ?? Infinity) ||
+
     collator.compare(a.title, b.title)
   );
 }
