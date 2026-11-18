@@ -15,7 +15,7 @@
 
 ## Description
 
-A lightweight music player app for android devices, prioritising stability, low battery consumption, low memory consumption, small APK size, and reliable background playback.
+A lightweight music player app for android devices, prioritising stability, small size and low battery usage.
 
 Features:
 
@@ -40,9 +40,8 @@ Features:
 
 ## Visuals
 
-![pic1](...)
-![pic2](...)
-![pic4](...)
+![pic1](https://github.com/user-attachments/assets/b30690a1-432b-4d4d-8b67-5665705c4235)
+![pic2](https://github.com/user-attachments/assets/f8dbad5d-dc01-4bff-be0d-0d8b3b7e4fcd)
 
 ## Installation
 
