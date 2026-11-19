@@ -77,8 +77,8 @@ adb shell am start -n com.example.androidmusicplayer/.MainActivity
 - [React Navigation](https://reactnavigation.org/)
 - [Expo Media Library](https://docs.expo.dev/versions/latest/sdk/media-library/)
 - [Zustand](https://github.com/pmndrs/zustand)
-- [React-Lucide] icons
-- Metro Bundler
+- [React-Lucide] icons (https://www.npmjs.com/package/lucide-react-native)
+- Metro Bundler (https://metrobundler.dev/docs/getting-started/)
 
 ## Support
 
