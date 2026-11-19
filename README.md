@@ -20,13 +20,12 @@ A lightweight music player app for android devices, prioritising stability, smal
 Features:
 
 - view song, album, artist, folder path
-- retrieves various metadata for each song
+- retrieves various existing metadata for each song
 - play/pause/next/previous, shuffle, repeat
 - searchbar
-- mini player
-- background playback
+- background and lock screen mini player playback
 - audio pause when aux input disconnected
-- theme selection
+- theme/color selection
 - create and store customizable playlists
 - re-arrangeable song queues
 - alter playback speed from 0.5x - 2x
@@ -75,6 +74,7 @@ adb shell am start -n com.example.androidmusicplayer/.MainActivity
 - [React Navigation](https://reactnavigation.org/)
 - [Expo Media Library](https://docs.expo.dev/versions/latest/sdk/media-library/)
 - [Zustand](https://github.com/pmndrs/zustand)
+- [React-Lucide]
 
 ## Support
 
