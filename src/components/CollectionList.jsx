@@ -1,39 +1,14 @@
 // src/components/CollectionList.jsx
 
-import {
-  memo,
-  useCallback,
-  useDeferredValue,
-  useMemo,
-  useState,
-} from "react";
-
-import {
-  View,
-  Text,
-  Pressable,
-  FlatList,
-  StyleSheet,
-} from "react-native";
-
-import {
-  UserRound,
-  Folder,
-  ChevronRight,
-} from "lucide-react-native";
-
+import { memo, useCallback, useDeferredValue, useMemo, useState } from "react";
+import { View, Text, Pressable, FlatList, StyleSheet } from "react-native";
+import { UserRound, Folder, ChevronRight } from "lucide-react-native";
 import AlbumArtwork from "./AlbumArtwork";
 import SearchBar from "./SearchBar";
 import LibraryEmptyState from "./LibraryEmptyState";
-
 import useMusicStore from "../store/useMusicStore";
 import useThemedStyles from "../theme/useThemedStyles";
-
-import {
-  filterCollections,
-  formatMetadata,
-  formatSongCount,
-} from "../utils/musicUtils";
+import { filterCollections, formatMetadata, formatSongCount } from "../utils/musicUtils";
 
 /* -------------------- LIST HELPERS -------------------- */
 
@@ -46,30 +21,14 @@ const CollectionRow = memo(function CollectionRow({
   type,
   onSelect,
 }) {
-  const { colors, styles } =
-    useThemedStyles(createStyles);
 
+  const { colors, styles } = useThemedStyles(createStyles);
   const isAlbum = type === "Albums";
   const isFolder = type === "Folders";
-
   const Icon = isFolder ? Folder : UserRound;
-
-  const songCount = formatSongCount(
-    collection.songs.length
-  );
-
-  const subtitle = isAlbum
-    ? formatMetadata(
-        collection.artist,
-        collection.year,
-        songCount
-      )
-    : songCount;
-
-  const handlePress = useCallback(
-    () => onSelect(collection),
-    [collection, onSelect]
-  );
+  const songCount = formatSongCount(collection.songs.length);
+  const subtitle = isAlbum ? formatMetadata(collection.artist, collection.year, songCount) : songCount;
+  const handlePress = useCallback(() => onSelect(collection), [collection, onSelect]);
 
   return (
     <Pressable
@@ -139,19 +98,10 @@ function CollectionList({
   onSelect,
 }) {
   const [search, setSearch] = useState("");
-
   const deferredSearch = useDeferredValue(search);
-
   const loading = useMusicStore((s) => s.loading);
   const loadSongs = useMusicStore((s) => s.loadSongs);
-
-  const items = useMemo(
-    () => filterCollections(
-      collections,
-      deferredSearch
-    ),
-    [collections, deferredSearch]
-  );
+  const items = useMemo(() => filterCollections(collections, deferredSearch), [collections, deferredSearch]);
 
   const renderItem = useCallback(
     ({ item }) => (
@@ -164,8 +114,7 @@ function CollectionList({
     [type, onSelect]
   );
 
-  const emptyState = useMemo(
-    () => (
+  const emptyState = useMemo(() => (
       <LibraryEmptyState
         message={
           deferredSearch.trim()

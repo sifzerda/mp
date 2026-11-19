@@ -1,7 +1,6 @@
 // src/services/artworkService.js
 
 import { PixelRatio } from "react-native";
-
 import MusicArtwork from "../../modules/music-artwork";
 
 const MAX_CACHE_ENTRIES = 1500;

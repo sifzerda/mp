@@ -1,15 +1,7 @@
 // src/components/LibraryEmptyState.jsx
 
 import { memo } from "react";
-
-import {
-  View,
-  Text,
-  ActivityIndicator,
-  Pressable,
-  StyleSheet,
-} from "react-native";
-
+import { View, Text, ActivityIndicator,Pressable, StyleSheet } from "react-native";
 import useMusicStore from "../store/useMusicStore";
 import useThemedStyles from "../theme/useThemedStyles";
 
@@ -17,7 +9,6 @@ function LibraryEmptyState({
   message = "No results found.",
 }) {
   const { colors, styles } = useThemedStyles(createStyles);
-
   const loading = useMusicStore((s) => s.loading);
   const error = useMusicStore((s) => s.error);
   const permissionGranted = useMusicStore((s) => s.permissionGranted);

@@ -1,11 +1,6 @@
 // src/services/audioService.js
 
-import TrackPlayer, {
-  RepeatMode,
-  Capability,
-  AppKilledPlaybackBehavior,
-  State,
-} from "react-native-track-player";
+import TrackPlayer, { RepeatMode, Capability, AppKilledPlaybackBehavior, State } from "react-native-track-player";
 import useSettingsStore from "../store/useSettingsStore";
 import { NativeModules, Platform } from "react-native";
 import usePlaybackStore from "../store/usePlaybackStore";

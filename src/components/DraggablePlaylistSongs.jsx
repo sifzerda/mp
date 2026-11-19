@@ -33,30 +33,11 @@ const PlaylistSongRow = memo(function PlaylistSongRow({
 }) {
   const { colors, styles } = useThemedStyles(createStyles);
 
-  const handlePlay = useCallback(
-    () => onPlaySong(song),
-    [onPlaySong, song]
-  );
-
-  const handleAdd = useCallback(
-    () => onAddToPlaylist?.(song),
-    [onAddToPlaylist, song]
-  );
-
-  const handleRemove = useCallback(
-    () => onRemoveSong?.(song),
-    [onRemoveSong, song]
-  );
-
-  const handleNext = useCallback(
-    () => onPlayNext?.(song),
-    [onPlayNext, song]
-  );
-
-  const handleQueue = useCallback(
-    () => onAddToQueue?.(song),
-    [onAddToQueue, song]
-  );
+  const handlePlay = useCallback(() => onPlaySong(song), [onPlaySong, song]);
+  const handleAdd = useCallback(() => onAddToPlaylist?.(song), [onAddToPlaylist, song]);
+  const handleRemove = useCallback(() => onRemoveSong?.(song), [onRemoveSong, song]);
+  const handleNext = useCallback(() => onPlayNext?.(song), [onPlayNext, song]);
+  const handleQueue = useCallback(() => onAddToQueue?.(song), [onAddToQueue, song]);
 
   return (
     <ScaleDecorator>
@@ -143,11 +124,7 @@ function DraggablePlaylistSongs({
   searchActive = false,
 }) {
   const { styles } = useThemedStyles(createStyles);
-
-  const reorderSongs = usePlaylistStore(
-    (s) => s.reorderSongs
-  );
-
+  const reorderSongs = usePlaylistStore((s) => s.reorderSongs);
   const dragSnapshot = useRef(null);
   const savingRef = useRef(false);
 
@@ -179,11 +156,7 @@ function DraggablePlaylistSongs({
           expectedSongIds
         );
       } catch (error) {
-        Alert.alert(
-          "Reorder failed",
-          error?.message ||
-            "Unable to reorder playlist songs."
-        );
+        Alert.alert("Reorder failed", error?.message || "Unable to reorder playlist songs.");
       } finally {
         savingRef.current = false;
       }
@@ -215,14 +188,10 @@ function DraggablePlaylistSongs({
     ]
   );
 
-  const renderEmpty = useCallback(
-    () => (
-      <EmptyPlaylist
-        searchActive={searchActive}
-      />
-    ),
-    [searchActive]
-  );
+  const renderEmpty = useCallback(() =>
+  (
+    <EmptyPlaylist searchActive={searchActive} />
+  ), [searchActive]);
 
   return (
     <DraggableFlatList

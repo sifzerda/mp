@@ -1,47 +1,22 @@
 // src/components/AlbumArtwork.jsx
 
-import {
-  useCallback,
-  useEffect,
-  useState,
-  memo,
-} from "react";
-
-import {
-  View,
-  StyleSheet,
-} from "react-native";
-
+import { useCallback, useEffect, useState, memo } from "react";
+import { View, StyleSheet } from "react-native";
 import { Image } from "expo-image";
 import { Music } from "lucide-react-native";
-
-import {
-  getSongArtwork,
-  getArtworkSize,
-  getArtworkKey,
-  peekSongArtwork,
-  invalidateSongArtwork,
-} from "../services/artworkService";
-
+import { getSongArtwork, getArtworkSize, getArtworkKey, peekSongArtwork, invalidateSongArtwork } from "../services/artworkService";
 import useThemedStyles from "../theme/useThemedStyles";
 
 /* -------------------- ARTWORK LOADING -------------------- */
 
 function useSongArtwork(song, displaySize = 52) {
+  
   const uri = song?.uri || song?.url || null;
   const size = getArtworkSize(displaySize);
-
-  const version = String(
-    song?.modificationTime ??
-    song?.modifiedAt ??
-    ""
-  );
-
+  const version = String(song?.modificationTime ?? song?.modifiedAt ?? "");
   const key = getArtworkKey(uri, size, version);
-
   const [result, setResult] = useState(null);
   const [retryKey, setRetryKey] = useState(null);
-
   const retry = retryKey === key;
 
   useEffect(() => {
@@ -65,10 +40,7 @@ function useSongArtwork(song, displaySize = 52) {
     };
   }, [uri, size, version, key, retry]);
 
-  const artwork =
-    result?.key === key
-      ? result.artwork
-      : peekSongArtwork(uri, size, version) ?? null;
+  const artwork = result?.key === key ? result.artwork : peekSongArtwork(uri, size, version) ?? null;
 
   const handleError = useCallback(() => {
     invalidateSongArtwork(uri, size, version);

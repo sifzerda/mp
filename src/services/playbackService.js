@@ -1,8 +1,6 @@
 // src/services/playbackService.js
 
-import TrackPlayer, {
-  Event,
-} from "react-native-track-player";
+import TrackPlayer, { Event } from "react-native-track-player";
 
 const safely = (action) => async (event) => {
   try {
