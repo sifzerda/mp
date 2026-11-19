@@ -20,13 +20,12 @@ A lightweight music player app for android devices, prioritising stability, smal
 Features:
 
 - view song, album, artist, folder path
-- retrieves various metadata for each song
+- retrieves various existing metadata for each song
 - play/pause/next/previous, shuffle, repeat
 - searchbar
-- mini player
-- background playback
+- background and lock screen mini player playback
 - audio pause when aux input disconnected
-- theme selection
+- theme/color selection
 - create and store customizable playlists
 - re-arrangeable song queues
 - alter playback speed from 0.5x - 2x
@@ -37,6 +36,9 @@ Features:
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT) 
 
 ![JavaScript](https://img.shields.io/badge/javascript-%23323330.svg?style=for-the-badge&logo=javascript&logoColor=%23F7DF1E) ![GitHub](https://img.shields.io/badge/github-%23121011.svg?style=for-the-badge&logo=github&logoColor=white) ![HTML5](https://img.shields.io/badge/html5-%23E34F26.svg?style=for-the-badge&logo=html5&logoColor=white) ![React Native](https://img.shields.io/badge/react_native-%2320232a.svg?style=for-the-badge&logo=react&logoColor=%2361DAFB) ![Expo](https://img.shields.io/badge/expo-%231C1E24.svg?style=for-the-badge&logo=expo&logoColor=#D04A37) ![Gradle](https://img.shields.io/badge/Gradle-%2302303A.svg?style=for-the-badge&logo=Gradle&logoColor=white) ![Kotlin](https://img.shields.io/badge/kotlin-%237F52FF.svg?style=for-the-badge&logo=kotlin&logoColor=white)
+![Android](https://img.shields.io/badge/Android-%233DDC84.svg?style=for-the-badge&logo=android&logoColor=white)
+![Android Studio](https://img.shields.io/badge/Android_studio-%233DDC84.svg?style=for-the-badge&logo=android&logoColor=white)
+![Metro](https://img.shields.io/badge/Metro_bundler-EF4242.svg?style=for-the-badge&logo=Metro&logoColor=white)
 
 ## Visuals
 
@@ -75,6 +77,8 @@ adb shell am start -n com.example.androidmusicplayer/.MainActivity
 - [React Navigation](https://reactnavigation.org/)
 - [Expo Media Library](https://docs.expo.dev/versions/latest/sdk/media-library/)
 - [Zustand](https://github.com/pmndrs/zustand)
+- [React-Lucide] icons (https://www.npmjs.com/package/lucide-react-native)
+- Metro Bundler (https://metrobundler.dev/docs/getting-started/)
 
 ## Support
 
