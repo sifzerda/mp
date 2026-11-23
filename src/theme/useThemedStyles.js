@@ -7,7 +7,6 @@ const MAX_THEME_VARIANTS = 8;
 
 export default function useThemedStyles(createStyles) {
   const colors = useTheme();
-
   const themeKey = `${colors.theme}:${colors.primary}`;
 
   let themes = styleCache.get(createStyles);
@@ -30,8 +29,5 @@ export default function useThemedStyles(createStyles) {
     themes.set(themeKey, styles);
   }
 
-  return {
-    colors,
-    styles,
-  };
+  return { colors, styles };
 }

@@ -1,65 +1,24 @@
 // src/components/PlaybackProgress.jsx
 
-import {
-  memo,
-  useCallback,
-  useRef,
-  useState,
-} from "react";
-
-import {
-  View,
-  Text,
-  StyleSheet,
-} from "react-native";
-
+import { memo, useCallback, useRef,useState } from "react";
+import { View, Text,StyleSheet } from "react-native";
 import Slider from "@react-native-community/slider";
-
 import { seekTo } from "../services/audioService";
 import usePlaybackProgress from "../hooks/usePlaybackProgress";
 import useThemedStyles from "../theme/useThemedStyles";
 import { formatTime } from "../utils/musicUtils";
 
-function PlaybackProgress({
-  trackId,
-  trackDuration = 0,
-  compact = false,
-  enabled = true,
-}) {
+function PlaybackProgress({ trackId, trackDuration = 0, compact = false, enabled = true }) {
+  
   const { colors, styles } = useThemedStyles(createStyles);
-
-  const { position, duration, refresh } =
-    usePlaybackProgress({
-      interval: compact ? 1000 : 250,
-      enabled,
-      trackId,
-    });
-
+  const { position, duration, refresh } = usePlaybackProgress({ interval: compact ? 1000 : 250, enabled, trackId, });
   const seekingRef = useRef(false);
   const [seekPosition, setSeekPosition] = useState(null);
-
-  const totalDuration = Math.max(
-    0,
-    duration || trackDuration || 0
-  );
-
+  const totalDuration = Math.max(0, duration || trackDuration || 0);
   const maximum = Math.max(totalDuration, 1);
-
-  const currentPosition = Math.min(
-    Math.max(seekPosition ?? position, 0),
-    maximum
-  );
-
-  const handleSeekStart = useCallback((value) => {
-    seekingRef.current = true;
-    setSeekPosition(value);
-  }, []);
-
-  const handleSeekChange = useCallback((value) => {
-    if (seekingRef.current) {
-      setSeekPosition(value);
-    }
-  }, []);
+  const currentPosition = Math.min(Math.max(seekPosition ?? position, 0), maximum);
+  const handleSeekStart = useCallback((value) => { seekingRef.current = true; setSeekPosition(value); }, []);
+  const handleSeekChange = useCallback((value) => { if (seekingRef.current) { setSeekPosition(value) } }, []);
 
   const handleSeekComplete = useCallback(
     async (value) => {

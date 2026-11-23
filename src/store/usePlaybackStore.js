@@ -13,10 +13,7 @@ const usePlaybackStore = create((set) => ({
   setRepeat: (repeat) => set({ repeat }),
   setSpeed: (speed) => set({ speed }),
   setOriginalQueue: (originalQueue) => set({ originalQueue }),
-
-  notifyQueueChanged: () => set((state) => ({
-      queueRevision: state.queueRevision + 1,
-    })),
+  notifyQueueChanged: () => set((state) => ({ queueRevision: state.queueRevision + 1 })),
 }));
 
 export default usePlaybackStore;

@@ -40,9 +40,7 @@ async function loadMetadataCache() {
   try {
     const stored = await AsyncStorage.getItem(CACHE_KEY);
 
-    return new Map(
-      stored ? Object.entries(JSON.parse(stored)) : []
-    );
+    return new Map(stored ? Object.entries(JSON.parse(stored)) : []);
   } catch {
     return new Map();
   }
@@ -126,7 +124,6 @@ function resolveFolder(uri, folders) {
   if (!uri) return UNKNOWN_FOLDER;
 
   const metadata = folders[uri];
-
   if (metadata) return metadata;
 
   if (
@@ -141,7 +138,6 @@ function resolveFolder(uri, folders) {
     }
 
     const folderPath = path.substring(0, path.lastIndexOf("/"));
-
     if (!folderPath) return UNKNOWN_FOLDER;
 
     return {

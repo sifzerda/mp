@@ -1,47 +1,13 @@
 // src/components/PlayerControls.jsx
 
-import {
-  memo,
-  useCallback,
-  useState,
-} from "react";
-
-import {
-  View,
-  Text,
-  Pressable,
-  StyleSheet,
-} from "react-native";
-
-import {
-  Play,
-  Pause,
-  SkipBack,
-  SkipForward,
-  Shuffle,
-  Repeat,
-  Repeat1,
-  ListMusic,
-  Gauge,
-} from "lucide-react-native";
-
-import {
-  usePlaybackState,
-  State,
-} from "react-native-track-player";
-
-import {
-  togglePlayback,
-  nextTrack,
-  previousTrack,
-  toggleShuffle,
-  cycleRepeat,
-} from "../services/audioService";
-
+import { memo, useCallback, useState } from "react";
+import { View, Text, Pressable, StyleSheet} from "react-native";
+import { Play, Pause, SkipBack, SkipForward, Shuffle, Repeat, Repeat1, ListMusic, Gauge } from "lucide-react-native";
+import { usePlaybackState, State } from "react-native-track-player";
+import { togglePlayback, nextTrack, previousTrack, toggleShuffle, cycleRepeat } from "../services/audioService";
 import usePlaybackAction from "../hooks/usePlaybackAction";
 import useThemedStyles from "../theme/useThemedStyles";
 import usePlaybackStore from "../store/usePlaybackStore";
-
 import PlaySpeedModal from "./PlaySpeedModal";
 
 const REPEAT_LABELS = {
@@ -54,10 +20,8 @@ const REPEAT_LABELS = {
 
 const PlaybackControls = memo(function PlaybackControls() {
   const { colors, styles } = useThemedStyles(createStyles);
-
   const { state } = usePlaybackState();
   const { busy, runAction } = usePlaybackAction();
-
   const isPlaying = state === State.Playing;
   const PlayIcon = isPlaying ? Pause : Play;
 
@@ -132,10 +96,7 @@ const ModeButton = memo(function ModeButton({
   accessibilityLabel,
 }) {
   const { colors, styles } = useThemedStyles(createStyles);
-
-  const color = active
-    ? colors.primary
-    : colors.muted;
+  const color = active ? colors.primary : colors.muted;
 
   return (
     <Pressable
@@ -180,16 +141,9 @@ const ModeButton = memo(function ModeButton({
 
 const SpeedButton = memo(function SpeedButton() {
   const speed = usePlaybackStore((s) => s.speed);
-
   const [visible, setVisible] = useState(false);
-
-  const openModal = useCallback(() => {
-    setVisible(true);
-  }, []);
-
-  const closeModal = useCallback(() => {
-    setVisible(false);
-  }, []);
+  const openModal = useCallback(() => { setVisible(true) }, []);
+  const closeModal = useCallback(() => { setVisible(false) }, []);
 
   return (
     <>
@@ -271,7 +225,6 @@ function PlayerControls({ onOpenQueue }) {
   return (
     <View style={styles.container}>
       <PlaybackControls />
-
       <PlaybackModes onOpenQueue={onOpenQueue} />
     </View>
   );
@@ -291,7 +244,7 @@ const createStyles = (colors) =>
       flexDirection: "row",
       alignItems: "center",
       justifyContent: "center",
-      gap: 30,
+      gap: 40,
     },
 
     skipButton: {
@@ -319,24 +272,17 @@ const createStyles = (colors) =>
       shadowRadius: 10,
     },
 
-    playIcon: {
-      marginLeft: 3,
-    },
-
-    pressed: {
-      opacity: 0.65,
-    },
-
-    disabled: {
-      opacity: 0.5,
-    },
+    playIcon: { marginLeft: 3 },
+    pressed: { opacity: 0.65 },
+    disabled: { opacity: 0.5 },
 
     modes: {
       flexDirection: "row",
       alignItems: "center",
       backgroundColor: colors.surfaceAlt,
-      borderRadius: 18,
-      paddingVertical: 8,
+      borderRadius: 10,
+      paddingVertical: 0,
+      paddingTop: 8,
       paddingHorizontal: 4,
     },
 
@@ -349,10 +295,7 @@ const createStyles = (colors) =>
       gap: 6,
     },
 
-    modeLabel: {
-      fontSize: 11,
-      fontWeight: "600",
-    },
+    modeLabel: { fontSize: 11, fontWeight: "600" },
 
     modeIndicator: {
       width: 4,
@@ -361,9 +304,7 @@ const createStyles = (colors) =>
       backgroundColor: "transparent",
     },
 
-    activeIndicator: {
-      backgroundColor: colors.primary,
-    },
+    activeIndicator: { backgroundColor: colors.primary },
 
     modeDivider: {
       width: 1,

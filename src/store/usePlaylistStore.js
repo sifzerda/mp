@@ -1,19 +1,8 @@
 // src/store/usePlaylistStore.js
 
 import { create } from "zustand";
-
-import {
-  readJSON,
-  writeJSON,
-} from "../services/storageService";
-
-import {
-  createPlaylistIndex,
-  normalizeSongIds,
-  playlistContainsSong,
-  isValidReorder,
-  sameOrder,
-} from "../utils/musicUtils";
+import { readJSON, writeJSON } from "../services/storageService";
+import { createPlaylistIndex, normalizeSongIds, playlistContainsSong, isValidReorder, sameOrder } from "../utils/musicUtils";
 
 const STORAGE_KEY = "music-player-playlists-v1";
 
@@ -40,20 +29,12 @@ const usePlaylistStore = create((set, get) => {
 
   function updatePlaylist(id, updater) {
     const current = get().playlistsById.get(id);
-
     if (!current) return;
 
     const updated = updater(current);
-
     if (updated === current) return;
 
-    const playlists = get().playlists.map(
-      (playlist) =>
-        playlist.id === id
-          ? updated
-          : playlist
-    );
-
+    const playlists = get().playlists.map((playlist) => playlist.id === id ? updated : playlist);
     return commitPlaylists(playlists);
   }
 
@@ -73,14 +54,7 @@ const usePlaylistStore = create((set, get) => {
           const saved = await readJSON(STORAGE_KEY, []);
 
           if (
-            !Array.isArray(saved) ||
-            saved.some(
-              (item) =>
-                !item ||
-                typeof item.id !== "string" ||
-                typeof item.name !== "string" ||
-                !Array.isArray(item.songIds)
-            )
+            !Array.isArray(saved) || saved.some((item) => !item || typeof item.id !== "string" || typeof item.name !== "string" || !Array.isArray(item.songIds))
           ) {
             throw new Error("Invalid playlist data.");
           }
@@ -110,14 +84,11 @@ const usePlaylistStore = create((set, get) => {
       }
     },
 
-    getPlaylist: (id) =>
-      get().playlistsById.get(id) ?? null,
+    getPlaylist: (id) => get().playlistsById.get(id) ?? null,
 
     createPlaylist: async (name) => {
       const trimmed = name.trim();
-
       if (!trimmed) return null;
-
       await get().loadPlaylists();
 
       const playlist = {
@@ -139,7 +110,6 @@ const usePlaylistStore = create((set, get) => {
 
     renamePlaylist: async (id, name) => {
       const trimmed = name.trim();
-
       if (!trimmed) return;
 
       await get().loadPlaylists();
@@ -161,23 +131,16 @@ const usePlaylistStore = create((set, get) => {
 
       if (!get().playlistsById.has(id)) return;
 
-      await commitPlaylists(
-        get().playlists.filter(
-          (playlist) => playlist.id !== id
-        )
-      );
+      await commitPlaylists(get().playlists.filter((playlist) => playlist.id !== id));
     },
 
     addSong: async (playlistId, songId) => {
       if (songId == null) return;
-
       await get().loadPlaylists();
 
       const id = String(songId);
 
-      await updatePlaylist(
-        playlistId,
-        (playlist) => {
+      await updatePlaylist(playlistId, (playlist) => {
           if (playlistContainsSong(playlist, id)) {
             return playlist;
           }
@@ -197,9 +160,7 @@ const usePlaylistStore = create((set, get) => {
 
       const id = String(songId);
 
-      await updatePlaylist(
-        playlistId,
-        (playlist) => {
+      await updatePlaylist(playlistId, (playlist) => {
           if (!playlistContainsSong(playlist, id)) {
             return playlist;
           }
@@ -214,41 +175,23 @@ const usePlaylistStore = create((set, get) => {
       );
     },
 
-    reorderSongs: async (
-      playlistId,
-      orderedSongIds,
-      expectedSongIds
-    ) => {
+    reorderSongs: async (playlistId, orderedSongIds, expectedSongIds) => {
       await get().loadPlaylists();
-
       if (!Array.isArray(orderedSongIds)) return;
 
       const orderedIds = orderedSongIds.map(String);
 
-      await updatePlaylist(
-        playlistId,
-        (playlist) => {
+      await updatePlaylist(playlistId, (playlist) => {
           if (
-            expectedSongIds &&
-            !sameOrder(
-              playlist.songIds,
-              expectedSongIds
-            )
+            expectedSongIds && !sameOrder(playlist.songIds, expectedSongIds)
           ) {
-            throw new Error(
-              "The playlist changed during reordering."
-            );
+            throw new Error("The playlist changed during reordering.");
           }
 
           if (
-            !isValidReorder(
-              playlist.songIds,
-              orderedIds
-            )
+            !isValidReorder(playlist.songIds, orderedIds)
           ) {
-            throw new Error(
-              "Invalid playlist ordering."
-            );
+            throw new Error("Invalid playlist ordering.");
           }
 
           if (sameOrder(playlist.songIds, orderedIds)) {
@@ -263,11 +206,7 @@ const usePlaylistStore = create((set, get) => {
       );
     },
 
-    containsSong: (playlistId, songId) =>
-      playlistContainsSong(
-        get().playlistsById.get(playlistId),
-        songId
-      ),
+    containsSong: (playlistId, songId) => playlistContainsSong(get().playlistsById.get(playlistId), songId),
   };
 });
 

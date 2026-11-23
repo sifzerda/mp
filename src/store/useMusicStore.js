@@ -1,15 +1,8 @@
 // src/store/useMusicStore.js
 
 import { create } from "zustand";
-
-import {
-  getLocalSongs,
-  requestMusicPermission,
-} from "../services/musicLibrary";
-
-import {
-  getLibraryIndex,
-} from "../utils/musicUtils";
+import { getLocalSongs, requestMusicPermission } from "../services/musicLibrary";
+import { getLibraryIndex } from "../utils/musicUtils";
 
 /* -------------------- HELPERS -------------------- */
 
@@ -17,30 +10,19 @@ function shallowEqual(a, b) {
   if (a === b) return true;
 
   const keys = Object.keys(a);
-
   if (keys.length !== Object.keys(b).length) {
     return false;
   }
 
-  return keys.every(
-    (key) =>
-      Object.prototype.hasOwnProperty.call(b, key) &&
-      Object.is(a[key], b[key])
-  );
+  return keys.every((key) => Object.prototype.hasOwnProperty.call(b, key) && Object.is(a[key], b[key]));
 }
 
 function reconcileSongs(previous, incoming, previousById) {
   let changed = previous.length !== incoming.length;
 
   const songs = incoming.map((song, index) => {
-    const existing = previousById.get(
-      String(song.id)
-    );
-
-    const result =
-      existing && shallowEqual(existing, song)
-        ? existing
-        : song;
+    const existing = previousById.get(String(song.id));
+    const result = existing && shallowEqual(existing, song) ? existing : song;
 
     if (result !== previous[index]) {
       changed = true;
@@ -90,12 +72,7 @@ const useMusicStore = create((set, get) => ({
         }
 
         const incoming = await getLocalSongs();
-
-        const songs = reconcileSongs(
-          get().songs,
-          incoming,
-          get().libraryIndex.songsById
-        );
+        const songs = reconcileSongs(get().songs, incoming, get().libraryIndex.songsById);
 
         if (songs !== get().songs) {
           set({
@@ -107,8 +84,7 @@ const useMusicStore = create((set, get) => ({
         set({ permissionGranted: true });
       } catch (error) {
         set({
-          error:
-            error?.message || "Unable to load music",
+          error: error?.message || "Unable to load music",
         });
       } finally {
         loadPromise = null;

@@ -5,17 +5,8 @@ import useSettingsStore from "../store/useSettingsStore";
 import { NativeModules, Platform } from "react-native";
 import usePlaybackStore from "../store/usePlaybackStore";
 
-const REPEAT_MODES = Object.freeze([
-  "off",
-  "all",
-  "one",
-]);
-
-const NATIVE_REPEAT_MODES = Object.freeze({
-  off: RepeatMode.Off,
-  all: RepeatMode.Queue,
-  one: RepeatMode.Track,
-});
+const REPEAT_MODES = Object.freeze([ "off", "all", "one" ]);
+const NATIVE_REPEAT_MODES = Object.freeze({ off: RepeatMode.Off, all: RepeatMode.Queue, one: RepeatMode.Track });
 
 let queueId = 0;
 let setupPromise = null;
@@ -28,12 +19,7 @@ function getStore() {
 }
 
 function getSongId(song) {
-  return String(
-    song.id ??
-    song.uri ??
-    song.url ??
-    song.localUri
-  );
+  return String(song.id ?? song.uri ?? song.url ?? song.localUri);
 }
 
 export function normalizeSong(song) {
@@ -94,10 +80,7 @@ function shuffleTracks(tracks) {
   for (let i = result.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
 
-    [result[i], result[j]] = [
-      result[j],
-      result[i],
-    ];
+    [result[i], result[j]] = [ result[j], result[i] ];
   }
 
   return result;
@@ -106,9 +89,7 @@ function shuffleTracks(tracks) {
 function getNextRepeatMode(current) {
   const index = REPEAT_MODES.indexOf(current);
 
-  return REPEAT_MODES[
-    (index + 1) % REPEAT_MODES.length
-  ];
+  return REPEAT_MODES[ (index + 1) % REPEAT_MODES.length ];
 }
 
 function isValidQueueIndex(index) {
@@ -117,9 +98,7 @@ function isValidQueueIndex(index) {
 
 function isUpcomingTrack(index, activeIndex) {
   return (
-    isValidQueueIndex(index) &&
-    activeIndex != null &&
-    index > activeIndex
+    isValidQueueIndex(index) && activeIndex != null && index > activeIndex
   );
 }
 
@@ -128,12 +107,10 @@ function isUpcomingTrack(index, activeIndex) {
 function runOperation(operation) {
   const result = playbackOperation.then(async () => {
     await initializePlayer();
-
     return operation();
   });
 
   playbackOperation = result.catch(() => { });
-
   return result;
 }
 
@@ -198,10 +175,7 @@ async function initialize() {
   const { speed, repeat } = getStore();
 
   await TrackPlayer.setRate(speed);
-
-  await TrackPlayer.setRepeatMode(
-    NATIVE_REPEAT_MODES[repeat]
-  );
+  await TrackPlayer.setRepeatMode(NATIVE_REPEAT_MODES[repeat]);
 }
 
 /* -------------------- QUEUE SYNCHRONIZATION -------------------- */
@@ -216,13 +190,8 @@ async function syncEditedQueue() {
   }
 }
 
-async function replaceQueuePreservingPlayback(
-  tracks,
-  currentId
-) {
-  const newIndex = tracks.findIndex(
-    (track) => track.id === currentId
-  );
+async function replaceQueuePreservingPlayback(tracks, currentId) {
+  const newIndex = tracks.findIndex((track) => track.id === currentId);
 
   if (newIndex < 0) {
     throw new Error("Current song missing from queue");
@@ -238,9 +207,7 @@ async function replaceQueuePreservingPlayback(
   await TrackPlayer.setQueue(tracks);
   await TrackPlayer.skip(newIndex);
 
-  await TrackPlayer.seekTo(
-    Math.max(0, progress.position || 0)
-  );
+  await TrackPlayer.seekTo(Math.max(0, progress.position || 0));
 
   if (wasPlaying) {
     await TrackPlayer.play();
@@ -255,10 +222,7 @@ export function playSong(song, songs = [song]) {
   return runOperation(async () => {
     const tracks = songs.map(normalizeSong);
     const selectedId = getSongId(song);
-
-    const selectedIndex = tracks.findIndex(
-      (track) => track.id === selectedId
-    );
+    const selectedIndex = tracks.findIndex((track) => track.id === selectedId);
 
     if (selectedIndex < 0) {
       throw new Error("Selected song not found in queue");
@@ -268,10 +232,7 @@ export function playSong(song, songs = [song]) {
 
     if (shuffle) {
       const selected = tracks[selectedIndex];
-
-      const remaining = tracks.filter(
-        (_, index) => index !== selectedIndex
-      );
+      const remaining = tracks.filter((_, index) => index !== selectedIndex);
 
       await TrackPlayer.setQueue([
         selected,
@@ -296,8 +257,7 @@ export function playSong(song, songs = [song]) {
 
 export function togglePlayback() {
   return runOperation(async () => {
-    const { state } =
-      await TrackPlayer.getPlaybackState();
+    const { state } = await TrackPlayer.getPlaybackState();
 
     if (state === State.Playing) {
       await TrackPlayer.pause();
@@ -309,28 +269,21 @@ export function togglePlayback() {
 
 export function nextTrack() {
   return runOperation(async () => {
-    const index =
-      await TrackPlayer.getActiveTrackIndex();
-
+    const index = await TrackPlayer.getActiveTrackIndex();
     if (index == null) return;
 
     const next = await TrackPlayer.getTrack(index + 1);
-
     if (next == null) return;
-
     await TrackPlayer.skipToNext();
   });
 }
 
 export function previousTrack() {
   return runOperation(async () => {
-    const index =
-      await TrackPlayer.getActiveTrackIndex();
-
+    const index = await TrackPlayer.getActiveTrackIndex();
     if (index == null) return;
 
-    const { position } =
-      await TrackPlayer.getProgress();
+    const { position } = await TrackPlayer.getProgress();
 
     if (position > 3 || index === 0) {
       await TrackPlayer.seekTo(0);
@@ -368,10 +321,7 @@ export function toggleShuffle() {
     const store = getStore();
     const enabled = !store.shuffle;
 
-    const [queue, index] = await Promise.all([
-      TrackPlayer.getQueue(),
-      TrackPlayer.getActiveTrackIndex(),
-    ]);
+    const [queue, index] = await Promise.all([ TrackPlayer.getQueue(), TrackPlayer.getActiveTrackIndex() ]);
 
     if (queue.length > 1 && index != null) {
       const current = queue[index];
@@ -380,22 +330,14 @@ export function toggleShuffle() {
         store.setOriginalQueue(queue);
 
         const history = queue.slice(0, index + 1);
-        const upcoming = shuffleTracks(
-          queue.slice(index + 1)
-        );
+        const upcoming = shuffleTracks(queue.slice(index + 1));
 
-        await replaceQueuePreservingPlayback(
-          [...history, ...upcoming],
-          current.id
-        );
+        await replaceQueuePreservingPlayback([...history, ...upcoming], current.id);
       } else {
         const original = store.originalQueue;
 
         if (original.length > 0) {
-          await replaceQueuePreservingPlayback(
-            original,
-            current.id
-          );
+          await replaceQueuePreservingPlayback(original, current.id);
         }
       }
 
@@ -411,10 +353,7 @@ export function toggleShuffle() {
 export function cycleRepeat() {
   return runOperation(async () => {
     const next = getNextRepeatMode(getStore().repeat);
-
-    await TrackPlayer.setRepeatMode(
-      NATIVE_REPEAT_MODES[next]
-    );
+    await TrackPlayer.setRepeatMode(NATIVE_REPEAT_MODES[next]);
 
     getStore().setRepeat(next);
   });
@@ -453,9 +392,7 @@ export function addSongToQueue(song) {
 export function playSongNext(song) {
   return runOperation(async () => {
     const track = createQueuedTrack(song);
-
-    const activeIndex =
-      await TrackPlayer.getActiveTrackIndex();
+    const activeIndex = await TrackPlayer.getActiveTrackIndex();
 
     if (activeIndex == null) {
       await TrackPlayer.add(track);
@@ -469,18 +406,12 @@ export function playSongNext(song) {
 
 /* -------------------- REMOVE FROM QUEUE -------------------- */
 
-export function removeQueuedTrack(
-  index,
-  expectedTrackId
-) {
+export function removeQueuedTrack(index, expectedTrackId) {
   return runOperation(async () => {
-    const activeIndex =
-      await TrackPlayer.getActiveTrackIndex();
+    const activeIndex = await TrackPlayer.getActiveTrackIndex();
 
     if (!isUpcomingTrack(index, activeIndex)) {
-      throw new Error(
-        "Only upcoming songs can be removed"
-      );
+      throw new Error("Only upcoming songs can be removed");
     }
 
     const track = await TrackPlayer.getTrack(index);
@@ -489,10 +420,7 @@ export function removeQueuedTrack(
       throw new Error("Invalid queue position");
     }
 
-    if (
-      expectedTrackId != null &&
-      String(track.id) !== String(expectedTrackId)
-    ) {
+    if (expectedTrackId != null && String(track.id) !== String(expectedTrackId)) {
       throw new Error("The playback queue has changed");
     }
 
@@ -503,48 +431,27 @@ export function removeQueuedTrack(
 
 /* -------------------- REORDER QUEUE -------------------- */
 
-export function moveQueuedTrack(
-  fromIndex,
-  toIndex,
-  expectedTrackId,
-  expectedDestinationId
-) {
+export function moveQueuedTrack(fromIndex, toIndex, expectedTrackId, expectedDestinationId) {
   return runOperation(async () => {
     if (fromIndex === toIndex) return;
 
-    const activeIndex =
-      await TrackPlayer.getActiveTrackIndex();
+    const activeIndex = await TrackPlayer.getActiveTrackIndex();
 
-    if (
-      !isUpcomingTrack(fromIndex, activeIndex) ||
-      !isUpcomingTrack(toIndex, activeIndex)
-    ) {
-      throw new Error(
-        "Only upcoming songs can be reordered"
-      );
+    if (!isUpcomingTrack(fromIndex, activeIndex) || !isUpcomingTrack(toIndex, activeIndex)) {
+      throw new Error("Only upcoming songs can be reordered");
     }
 
-    const [source, destination] = await Promise.all([
-      TrackPlayer.getTrack(fromIndex),
-      TrackPlayer.getTrack(toIndex),
-    ]);
+    const [source, destination] = await Promise.all([TrackPlayer.getTrack(fromIndex), TrackPlayer.getTrack(toIndex)]);
 
     if (!source || !destination) {
       throw new Error("Invalid queue position");
     }
 
-    if (
-      expectedTrackId != null &&
-      String(source.id) !== String(expectedTrackId)
-    ) {
+    if (expectedTrackId != null && String(source.id) !== String(expectedTrackId)) {
       throw new Error("The playback queue has changed");
     }
 
-    if (
-      expectedDestinationId != null &&
-      String(destination.id) !==
-      String(expectedDestinationId)
-    ) {
+    if (expectedDestinationId != null && String(destination.id) !== String(expectedDestinationId)) {
       throw new Error("The playback queue has changed");
     }
 
@@ -567,10 +474,7 @@ export function playQueuedTrack(index, expectedTrackId) {
       throw new Error("Invalid queue position");
     }
 
-    if (
-      expectedTrackId != null &&
-      String(track.id) !== String(expectedTrackId)
-    ) {
+    if (expectedTrackId != null && String(track.id) !== String(expectedTrackId)) {
       throw new Error("The playback queue has changed");
     }
 
@@ -584,19 +488,12 @@ export function playQueuedTrack(index, expectedTrackId) {
 export function setPlaybackSpeed(speed) {
   return runOperation(async () => {
     const rate = Number(speed);
-
-    if (
-      !Number.isFinite(rate) ||
-      rate < 0.5 ||
-      rate > 2
-    ) {
+    if (!Number.isFinite(rate) || rate < 0.5 || rate > 2) {
       throw new Error("Invalid playback speed");
     }
 
     if (rate === getStore().speed) return;
-
     await TrackPlayer.setRate(rate);
-
     getStore().setSpeed(rate);
   });
 }

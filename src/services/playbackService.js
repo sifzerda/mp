@@ -11,19 +11,9 @@ const safely = (action) => async (event) => {
 };
 
 export default async function playbackService() {
-  TrackPlayer.addEventListener(
-    Event.RemotePlay,
-    safely(() => TrackPlayer.play())
-  );
-
-  TrackPlayer.addEventListener(
-    Event.RemotePause,
-    safely(() => TrackPlayer.pause())
-  );
-
-  TrackPlayer.addEventListener(
-    Event.RemoteNext,
-    safely(async () => {
+  TrackPlayer.addEventListener(Event.RemotePlay, safely(() => TrackPlayer.play()));
+  TrackPlayer.addEventListener(Event.RemotePause, safely(() => TrackPlayer.pause()));
+  TrackPlayer.addEventListener(Event.RemoteNext, safely(async () => {
       try {
         await TrackPlayer.skipToNext();
       } catch {
@@ -43,10 +33,5 @@ export default async function playbackService() {
     })
   );
 
-  TrackPlayer.addEventListener(
-    Event.RemoteSeek,
-    safely(({ position }) =>
-      TrackPlayer.seekTo(position)
-    )
-  );
+  TrackPlayer.addEventListener(Event.RemoteSeek, safely(({ position }) => TrackPlayer.seekTo(position)));
 }

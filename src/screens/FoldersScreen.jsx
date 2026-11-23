@@ -1,16 +1,12 @@
 // src/screens/FoldersScreen.jsx
 
 import { useCallback } from "react";
-
 import LibraryLayout from "../components/LibraryLayout";
 import CollectionList from "../components/CollectionList";
-
 import useMusicStore from "../store/useMusicStore";
 
 export default function FoldersScreen({ navigation }) {
-  const folders = useMusicStore(
-    (s) => s.libraryIndex.folders
-  );
+  const folders = useMusicStore((s) => s.libraryIndex.folders);
 
   const handleSelect = useCallback(
     (folder) => {

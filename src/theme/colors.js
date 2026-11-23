@@ -32,13 +32,16 @@ export const LIGHT_COLORS = {
 
 export const ACCENT_PRESETS = [
   { name: "Cyan", color: "#00d9ff" },
-  { name: "Blue", color: "#3684ff" },
-  { name: "Purple", color: "#a855f7" },
+  { name: "Blue", color: "#0062ff" },
+  { name: "Purple", color: "#3700ff" },
   { name: "Pink", color: "#ec4899" },
   { name: "Red", color: "#ef4444" },
   { name: "Orange", color: "#f97316" },
-  { name: "Green", color: "#22c55e" },
+  { name: "Green", color: "#00ff62" },
   { name: "Gold", color: "#eab308" },
+  { name: "Volt", color: "#CEFF00" },
+  { name: "Robin Egg", color: "#68ffeb" },
+  { name: "Navy", color: "#002874" },
 ];
 
 // Backward compatibility while migrating components.

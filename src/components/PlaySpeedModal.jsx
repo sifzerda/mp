@@ -1,28 +1,9 @@
 // src/components/PlaySpeedModal.jsx
 
-import {
-  memo,
-  useEffect,
-  useState,
-} from "react";
-
-import {
-  View,
-  Text,
-  Pressable,
-  Modal,
-  StyleSheet,
-  Alert,
-} from "react-native";
-
+import { memo, useEffect, useState } from "react";
+import { View, Text, Pressable, Modal, StyleSheet, Alert } from "react-native";
 import Slider from "@react-native-community/slider";
-
-import {
-  X,
-  RotateCcw,
-  Gauge,
-} from "lucide-react-native";
-
+import { X, RotateCcw, Gauge } from "lucide-react-native";
 import { setPlaybackSpeed } from "../services/audioService";
 import usePlaybackStore from "../store/usePlaybackStore";
 import usePlaybackAction from "../hooks/usePlaybackAction";
@@ -31,12 +12,7 @@ import useThemedStyles from "../theme/useThemedStyles";
 const MIN_SPEED = 0.5;
 const MAX_SPEED = 2;
 const STEP = 0.05;
-
-const TICKS = Array.from(
-  { length: 31 },
-  (_, index) => index
-);
-
+const TICKS = Array.from({ length: 31 }, (_, index) => index);
 const LABELS = [
   "0.5",
   "0.75",

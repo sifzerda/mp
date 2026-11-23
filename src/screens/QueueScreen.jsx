@@ -1,24 +1,10 @@
 // src/screens/QueueScreen.jsx
 
 import { memo, useCallback } from "react";
-import {
-  View,
-  Text,
-  Pressable,
-  StyleSheet,
-  ActivityIndicator,
-} from "react-native";
-import {
-  X,
-  GripVertical,
-  Music,
-  ChevronLeft,
-} from "lucide-react-native";
-
+import { View, Text, Pressable, StyleSheet, ActivityIndicator } from "react-native";
+import { X, GripVertical, Music, ChevronLeft } from "lucide-react-native";
 import DraggableFlatList, { ScaleDecorator } from "react-native-draggable-flatlist";
-
 import AlbumArtwork from "../components/AlbumArtwork";
-
 import useCurrentSong from "../hooks/useCurrentSong";
 import usePlaybackQueue from "../hooks/usePlaybackQueue";
 import useThemedStyles from "../theme/useThemedStyles";
@@ -27,11 +13,7 @@ const keyExtractor = (item) => String(item.id);
 
 /* -------------------- SONG INFORMATION -------------------- */
 
-const QueueSongInformation = memo(
-  function QueueSongInformation({
-    track,
-    current = false,
-  }) {
+const QueueSongInformation = memo(function QueueSongInformation({ track, current = false }) {
     const { styles } = useThemedStyles(createStyles);
     const song = useCurrentSong(track);
 

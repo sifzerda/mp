@@ -1,101 +1,64 @@
 // src/screens/NowPlayingScreen.jsx
 
-import { memo, useCallback } from "react";
-
-import {
-  View,
-  Text,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  useWindowDimensions,
-} from "react-native";
-
-import { SafeAreaView } from "react-native-safe-area-context";
+import { memo, useCallback, useState } from "react";
+import { View, Text, Pressable, StyleSheet, useWindowDimensions } from "react-native";
 import { useIsFocused } from "@react-navigation/native";
 import { useActiveTrack } from "react-native-track-player";
-
 import { ChevronDown, Music2 } from "lucide-react-native";
-
 import PlayerControls from "../components/PlayerControls";
 import PlaybackProgress from "../components/PlaybackProgress";
 import AlbumArtwork from "../components/AlbumArtwork";
-
 import useCurrentSong from "../hooks/useCurrentSong";
 import useThemedStyles from "../theme/useThemedStyles";
+import { formatMetadata, getYear, getTrackNumber, getDiscNumber } from "../utils/musicUtils";
 
-import {
-  formatMetadata,
-  getYear,
-  getTrackNumber,
-  getDiscNumber,
-} from "../utils/musicUtils";
+const MAX_ARTWORK_SIZE = 400;
+const COMPACT_HEIGHT = 760;
 
 function NowPlayingScreen({ navigation }) {
-  const { colors, styles } =
-    useThemedStyles(createStyles);
-
-  const { width, height } = useWindowDimensions();
-
+  const { colors, styles } = useThemedStyles(createStyles);
+  const { height } = useWindowDimensions();
+  const compact = height < COMPACT_HEIGHT;
+  const [artworkSize, setArtworkSize] = useState(0);
   const track = useActiveTrack();
   const song = useCurrentSong(track);
   const isFocused = useIsFocused();
-
-  const artworkSize = Math.min(
-    width - 48,
-    height * 0.36,
-    400
-  );
-
   const metadata = song ?? track ?? {};
-
-  const title =
-    song?.title ||
-    track?.title ||
-    "Unknown Title";
-
-  const artist =
-    song?.artist ||
-    track?.artist ||
-    "Unknown Artist";
-
-  const album =
-    song?.album ||
-    track?.album ||
-    "";
-
+  const title = song?.title || track?.title || "Unknown Title";
+  const artist = song?.artist || track?.artist || "Unknown Artist";
+  const album = song?.album || track?.album || "";
   const year = getYear(metadata);
   const trackNumber = getTrackNumber(metadata);
   const discNumber = getDiscNumber(metadata);
+  const albumInfo = formatMetadata(album, year);
+  const trackInfo = formatMetadata(discNumber > 1 ? `Disc ${discNumber}` : null, trackNumber != null ? `Track ${trackNumber}` : null, metadata.genre);
 
-  const albumInfo = formatMetadata(
-    album,
-    year
-  );
+  /* -------------------- NAVIGATION -------------------- */
 
-  const trackInfo = formatMetadata(
-    discNumber > 1
-      ? `Disc ${discNumber}`
-      : null,
+  const closePlayer = useCallback(() => { navigation.goBack() }, [navigation]);
+  const openQueue = useCallback(() => { navigation.navigate("Queue") }, [navigation]);
 
-    trackNumber != null
-      ? `Track ${trackNumber}`
-      : null,
+  /* -------------------- RESPONSIVE ARTWORK -------------------- */
 
-    metadata.genre
-  );
+  const handleArtworkLayout = useCallback((event) => {
+    const { width, height } = event.nativeEvent.layout;
+    const size = Math.max(0, Math.floor(Math.min(width, height, MAX_ARTWORK_SIZE)));
 
-  const closePlayer = useCallback(() => {
-    navigation.goBack();
-  }, [navigation]);
+    setArtworkSize((current) => current === size ? current : size);
+  }, []);
 
-  const openQueue = useCallback(() => {
-    navigation.navigate("Queue");
-  }, [navigation]);
+  /* -------------------- RENDER -------------------- */
 
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
+    <View style={styles.container}>
+      {/* HEADER */}
+
+      <View
+        style={[
+          styles.header,
+          compact && styles.compactHeader,
+        ]}
+      >
         <Pressable
           onPress={closePlayer}
           style={styles.headerButton}
@@ -121,6 +84,8 @@ function NowPlayingScreen({ navigation }) {
         <View style={styles.headerSpacer} />
       </View>
 
+      {/* EMPTY PLAYER */}
+
       {!track ? (
         <View style={styles.emptyContainer}>
           <Music2
@@ -138,26 +103,44 @@ function NowPlayingScreen({ navigation }) {
           </Text>
         </View>
       ) : (
-        <ScrollView
-          style={styles.scrollView}
-          contentContainerStyle={styles.content}
-          showsVerticalScrollIndicator={false}
-          overScrollMode="never"
+        <View
+          style={[
+            styles.content,
+            compact && styles.compactContent,
+          ]}
         >
-          <View style={styles.artworkContainer}>
-            <View style={styles.artworkShadow}>
-              <AlbumArtwork
-                song={song}
-                size={artworkSize}
-                borderRadius={20}
-              />
-            </View>
+          {/* FLEXIBLE ARTWORK AREA */}
+
+          <View
+            style={styles.artworkContainer}
+            onLayout={handleArtworkLayout}
+          >
+            {artworkSize > 0 && (
+              <View style={styles.artworkShadow}>
+                <AlbumArtwork
+                  song={song}
+                  size={artworkSize}
+                  borderRadius={20}
+                />
+              </View>
+            )}
           </View>
 
-          <View style={styles.trackInfo}>
+          {/* TRACK INFORMATION */}
+
+          <View
+            style={[
+              styles.trackInfo,
+              compact && styles.compactTrackInfo,
+            ]}
+          >
             <Text
-              style={styles.title}
+              style={[
+                styles.title,
+                compact && styles.compactTitle,
+              ]}
               numberOfLines={2}
+              ellipsizeMode="tail"
             >
               {title}
             </Text>
@@ -188,17 +171,28 @@ function NowPlayingScreen({ navigation }) {
             )}
           </View>
 
-          <PlaybackProgress
-            key={track.id}
-            trackId={track.id}
-            trackDuration={track.duration}
-            enabled={isFocused}
-          />
+          {/* PLAYBACK */}
 
-          <PlayerControls onOpenQueue={openQueue} />
-        </ScrollView>
+          <View
+            style={[
+              styles.playbackSection,
+              compact && styles.compactPlaybackSection,
+            ]}
+          >
+            <PlaybackProgress
+              key={track.id}
+              trackId={track.id}
+              trackDuration={track.duration}
+              enabled={isFocused}
+            />
+
+            <PlayerControls
+              onOpenQueue={openQueue}
+            />
+          </View>
+        </View>
       )}
-    </SafeAreaView>
+    </View>
   );
 }
 
@@ -213,11 +207,17 @@ const createStyles = (colors) =>
       backgroundColor: colors.background,
     },
 
+    /* HEADER */
+
     header: {
       flexDirection: "row",
       alignItems: "center",
       paddingHorizontal: 20,
       paddingVertical: 8,
+    },
+
+    compactHeader: {
+      paddingVertical: 4,
     },
 
     headerButton: {
@@ -252,22 +252,30 @@ const createStyles = (colors) =>
       width: 44,
     },
 
-    scrollView: {
-      flex: 1,
-    },
+    /* MAIN CONTENT */
 
     content: {
-      flexGrow: 1,
+      flex: 1,
       width: "100%",
       maxWidth: 500,
       alignSelf: "center",
       paddingHorizontal: 24,
-      paddingTop: 16,
-      paddingBottom: 24,
-      gap: 18,
+      paddingTop: 12,
+      paddingBottom: 20,
+      gap: 16,
     },
 
+    compactContent: {
+      paddingTop: 6,
+      paddingBottom: 10,
+      gap: 10,
+    },
+
+    /* ARTWORK */
+
     artworkContainer: {
+      flex: 1,
+      minHeight: 0,
       alignItems: "center",
       justifyContent: "center",
     },
@@ -276,6 +284,7 @@ const createStyles = (colors) =>
       borderRadius: 20,
       backgroundColor: colors.surface,
       elevation: 8,
+
       shadowColor: "#000000",
       shadowOffset: {
         width: 0,
@@ -285,8 +294,15 @@ const createStyles = (colors) =>
       shadowRadius: 16,
     },
 
+    /* TRACK INFORMATION */
+
     trackInfo: {
+      flexShrink: 0,
       gap: 5,
+    },
+
+    compactTrackInfo: {
+      gap: 3,
     },
 
     title: {
@@ -294,6 +310,10 @@ const createStyles = (colors) =>
       fontSize: 27,
       fontWeight: "700",
       letterSpacing: -0.7,
+    },
+
+    compactTitle: {
+      fontSize: 23,
     },
 
     artist: {
@@ -311,6 +331,19 @@ const createStyles = (colors) =>
       color: colors.muted,
       fontSize: 11,
     },
+
+    /* PLAYBACK */
+
+    playbackSection: {
+      flexShrink: 0,
+      gap: 16,
+    },
+
+    compactPlaybackSection: {
+      gap: 8,
+    },
+
+    /* EMPTY PLAYER */
 
     emptyContainer: {
       flex: 1,

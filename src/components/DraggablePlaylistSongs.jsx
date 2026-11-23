@@ -1,17 +1,7 @@
 // src/components/DraggablePlaylistSongs.jsx
 
-import {
-  memo,
-  useCallback,
-  useRef,
-} from "react";
-import {
-  View,
-  Text,
-  Pressable,
-  StyleSheet,
-  Alert,
-} from "react-native";
+import { memo, useCallback, useRef } from "react";
+import { View, Text, Pressable, StyleSheet, Alert } from "react-native";
 import { GripVertical } from "lucide-react-native";
 import DraggableFlatList, { ScaleDecorator } from "react-native-draggable-flatlist";
 import SongItem from "./SongItem";
@@ -32,7 +22,6 @@ const PlaylistSongRow = memo(function PlaylistSongRow({
   onAddToQueue,
 }) {
   const { colors, styles } = useThemedStyles(createStyles);
-
   const handlePlay = useCallback(() => onPlaySong(song), [onPlaySong, song]);
   const handleAdd = useCallback(() => onAddToPlaylist?.(song), [onAddToPlaylist, song]);
   const handleRemove = useCallback(() => onRemoveSong?.(song), [onRemoveSong, song]);
@@ -51,31 +40,18 @@ const PlaylistSongRow = memo(function PlaylistSongRow({
           <SongItem
             song={song}
             onPress={handlePlay}
-            onAddToPlaylist={
-              onAddToPlaylist ? handleAdd : undefined
-            }
-            onRemoveFromPlaylist={
-              onRemoveSong ? handleRemove : undefined
-            }
-            onPlayNext={
-              onPlayNext ? handleNext : undefined
-            }
-            onAddToQueue={
-              onAddToQueue ? handleQueue : undefined
-            }
+            onAddToPlaylist={onAddToPlaylist ? handleAdd : undefined}
+            onRemoveFromPlaylist={onRemoveSong ? handleRemove : undefined}
+            onPlayNext={onPlayNext ? handleNext : undefined}
+            onAddToQueue={onAddToQueue ? handleQueue : undefined}
           />
         </View>
 
         <Pressable
-          onLongPress={
-            searchActive ? undefined : drag
-          }
+          onLongPress={searchActive ? undefined : drag}
           delayLongPress={180}
           disabled={isActive || searchActive}
-          style={[
-            styles.dragHandle,
-            searchActive && styles.disabledHandle,
-          ]}
+          style={[styles.dragHandle, searchActive && styles.disabledHandle]}
           accessibilityRole="button"
           accessibilityLabel={`Reorder ${song.title}`}
           accessibilityHint="Long press and drag to reorder"
@@ -91,17 +67,13 @@ const PlaylistSongRow = memo(function PlaylistSongRow({
   );
 });
 
-const EmptyPlaylist = memo(function EmptyPlaylist({
-  searchActive,
-}) {
+const EmptyPlaylist = memo(function EmptyPlaylist({ searchActive }) {
   const { styles } = useThemedStyles(createStyles);
 
   return (
     <View style={styles.emptyContainer}>
       <Text style={styles.emptyText}>
-        {searchActive
-          ? "No matching or available songs."
-          : "This playlist is empty."}
+        {searchActive ? "No matching or available songs." : "This playlist is empty."}
       </Text>
 
       {!searchActive && (
@@ -128,9 +100,7 @@ function DraggablePlaylistSongs({
   const dragSnapshot = useRef(null);
   const savingRef = useRef(false);
 
-  const handleDragBegin = useCallback(() => {
-    dragSnapshot.current = playlist.songIds;
-  }, [playlist.songIds]);
+  const handleDragBegin = useCallback(() => { dragSnapshot.current = playlist.songIds }, [playlist.songIds]);
 
   const handleDragEnd = useCallback(
     async ({ data, from, to }) => {
@@ -188,10 +158,7 @@ function DraggablePlaylistSongs({
     ]
   );
 
-  const renderEmpty = useCallback(() =>
-  (
-    <EmptyPlaylist searchActive={searchActive} />
-  ), [searchActive]);
+  const renderEmpty = useCallback(() => (<EmptyPlaylist searchActive={searchActive} />), [searchActive]);
 
   return (
     <DraggableFlatList

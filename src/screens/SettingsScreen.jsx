@@ -1,26 +1,8 @@
 // src/screens/SettingsScreen.jsx
 
 import { useMemo } from "react";
-
-import {
-  View,
-  Text,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Switch,
-} from "react-native";
-
-import {
-  Headphones,
-  Sun,
-  Moon,
-  Smartphone,
-  ChevronLeft,
-  Check,
-  RotateCcw,
-} from "lucide-react-native";
-
+import { View, Text, Pressable, ScrollView, StyleSheet, Switch } from "react-native";
+import { Headphones, Sun, Moon, Smartphone, ChevronLeft, Check, RotateCcw } from "lucide-react-native";
 import useSettingsStore from "../store/useSettingsStore";
 import useTheme from "../theme/useTheme";
 import { ACCENT_PRESETS } from "../theme/colors";
@@ -35,28 +17,13 @@ const THEMES = [
 export default function SettingsScreen({ navigation }) {
   const theme = useSettingsStore((s) => s.theme);
   const accent = useSettingsStore((s) => s.accent);
-
-  const pauseOnDisconnect = useSettingsStore(
-    (s) => s.pauseOnDisconnect
-  );
-
+  const pauseOnDisconnect = useSettingsStore((s) => s.pauseOnDisconnect);
   const setTheme = useSettingsStore((s) => s.setTheme);
   const setAccent = useSettingsStore((s) => s.setAccent);
-
-  const setPauseOnDisconnect = useSettingsStore(
-    (s) => s.setPauseOnDisconnect
-  );
-
-  const resetSettings = useSettingsStore(
-    (s) => s.resetSettings
-  );
-
+  const setPauseOnDisconnect = useSettingsStore((s) => s.setPauseOnDisconnect);
+  const resetSettings = useSettingsStore((s) => s.resetSettings);
   const colors = useTheme();
-
-  const styles = useMemo(
-    () => createStyles(colors),
-    [colors]
-  );
+  const styles = useMemo(() => createStyles(colors), [colors]);
 
   return (
     <ScrollView

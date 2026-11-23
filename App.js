@@ -4,16 +4,13 @@ import { useEffect, useState } from "react";
 import { View, Text, ActivityIndicator, StyleSheet } from "react-native";
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
-
 import RootNavigator from "./src/navigation/RootNavigator";
 import useThemedStyles from "./src/theme/useThemedStyles";
-
 import { initializePlayer } from "./src/services/audioService";
 import { StatusBar } from "react-native";
 
 export default function App() {
   const { colors, styles } = useThemedStyles(createStyles);
-
   const [ready, setReady] = useState(false);
   const [error, setError] = useState(null);
 

@@ -2,9 +2,7 @@
 
 import LibraryLayout from "../components/LibraryLayout";
 import SongList from "../components/SongList";
-
 import useMusicStore from "../store/useMusicStore";
-
 import { EMPTY_SONGS } from "../utils/musicUtils";
 
 export default function FolderDetailScreen({ route }) {
@@ -16,11 +14,7 @@ export default function FolderDetailScreen({ route }) {
   return (
     <LibraryLayout
       title={folder?.name ?? "Folder"}
-      subtitle={
-        folder?.path
-          ? `${folder.path} · ${songCount}`
-          : songCount
-      }
+      subtitle={folder?.path ? `${folder.path} · ${songCount}` : songCount}
       showBack
       showRefresh={false}
     >

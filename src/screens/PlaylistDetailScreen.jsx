@@ -8,80 +8,31 @@ import {
   useState,
 } from "react";
 
-import {
-  Text,
-  Pressable,
-  Alert,
-  StyleSheet,
-} from "react-native";
-
+import { Text, Pressable, Alert, StyleSheet } from "react-native";
 import { Play } from "lucide-react-native";
-
 import LibraryLayout from "../components/LibraryLayout";
 import SearchBar from "../components/SearchBar";
 import PlaylistPicker from "../components/PlaylistPicker";
 import DraggablePlaylistSongs from "../components/DraggablePlaylistSongs";
-
 import usePlaylistStore from "../store/usePlaylistStore";
 import useMusicStore from "../store/useMusicStore";
-
 import useSongActions from "../hooks/useSongActions";
 import useThemedStyles from "../theme/useThemedStyles";
-
-import {
-  filterSongs,
-  EMPTY_SONG_IDS,
-  resolvePlaylistSongs,
-} from "../utils/musicUtils";
+import { filterSongs, EMPTY_SONG_IDS, resolvePlaylistSongs } from "../utils/musicUtils";
 
 function PlaylistDetailScreen({ route }) {
   const { playlistId } = route.params;
-
-  const { colors, styles } =
-    useThemedStyles(createStyles);
-
+  const { colors, styles } = useThemedStyles(createStyles);
   const [search, setSearch] = useState("");
   const deferredSearch = useDeferredValue(search);
-
-  const songsById = useMusicStore(
-    (s) => s.libraryIndex.songsById
-  );
-
-  const playlist = usePlaylistStore(
-    (s) => s.playlistsById.get(playlistId)
-  );
-
-  const removeSong = usePlaylistStore(
-    (s) => s.removeSong
-  );
-
-  const songIds =
-    playlist?.songIds ?? EMPTY_SONG_IDS;
-
+  const songsById = useMusicStore((s) => s.libraryIndex.songsById);
+  const playlist = usePlaylistStore((s) => s.playlistsById.get(playlistId));
+  const removeSong = usePlaylistStore((s) => s.removeSong);
+  const songIds = playlist?.songIds ?? EMPTY_SONG_IDS;
   const playlistName = playlist?.name;
-
-  const playlistSongs = useMemo(
-    () =>
-      resolvePlaylistSongs(
-        songIds,
-        songsById
-      ),
-    [songIds, songsById]
-  );
-
-  const items = useMemo(
-    () =>
-      filterSongs(
-        playlistSongs,
-        deferredSearch
-      ),
-    [playlistSongs, deferredSearch]
-  );
-
-  const searchActive =
-    search.trim().length > 0 ||
-    deferredSearch.trim().length > 0 ||
-    playlistSongs.length !== songIds.length;
+  const playlistSongs = useMemo(() => resolvePlaylistSongs(songIds, songsById), [songIds, songsById]);
+  const items = useMemo(() => filterSongs(playlistSongs, deferredSearch), [playlistSongs, deferredSearch]);
+  const searchActive = search.trim().length > 0 || deferredSearch.trim().length > 0 || playlistSongs.length !== songIds.length;
 
   const {
     pickerSong,
@@ -115,26 +66,16 @@ function PlaylistDetailScreen({ route }) {
             style: "destructive",
             onPress: async () => {
               try {
-                await removeSong(
-                  playlistId,
-                  song.id
-                );
+                await removeSong(playlistId, song.id);
               } catch {
-                Alert.alert(
-                  "Error",
-                  "Unable to save playlist changes."
-                );
+                Alert.alert("Error", "Unable to save playlist changes.");
               }
             },
           },
         ]
       );
     },
-    [
-      playlistId,
-      playlistName,
-      removeSong,
-    ]
+    [ playlistId, playlistName, removeSong ]
   );
 
   if (!playlist) {

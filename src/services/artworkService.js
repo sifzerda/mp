@@ -5,7 +5,6 @@ import MusicArtwork from "../../modules/music-artwork";
 
 const MAX_CACHE_ENTRIES = 1500;
 const MAX_CONCURRENT_REQUESTS = 3;
-
 const CACHE_TTL = 5 * 60 * 1000;
 const NEGATIVE_CACHE_TTL = 5 * 60 * 1000;
 

@@ -6,10 +6,7 @@ const writers = new Map();
 
 export async function readJSON(key, fallback = null) {
   const value = await AsyncStorage.getItem(key);
-
-  return value === null
-    ? fallback
-    : JSON.parse(value);
+  return value === null ? fallback : JSON.parse(value);
 }
 
 function getWriter(key) {
@@ -35,10 +32,7 @@ async function processWrites(key, writer) {
       writer.pending = null;
 
       try {
-        await AsyncStorage.setItem(
-          key,
-          JSON.stringify(value)
-        );
+        await AsyncStorage.setItem(key, JSON.stringify(value));
 
         callbacks.forEach(({ resolve }) => resolve());
       } catch (error) {
