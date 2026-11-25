@@ -402,16 +402,3 @@ export function resolvePlaylistSongs(songIds, songsById) {
 
   return result;
 }
-
-// metadata normalization function
-
-export function normalizeMetadata(value) {
-  return String(value ?? "")
-    .normalize("NFKC")
-    .toLowerCase()
-    .replace(/[‘’]/g, "'")
-    .replace(/[“”]/g, '"')
-    .replace(/[‐‑‒–—]/g, "-")
-    .replace(/\s+/g, " ")
-    .trim();
-}
