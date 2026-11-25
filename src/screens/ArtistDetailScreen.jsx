@@ -3,17 +3,18 @@
 import LibraryLayout from "../components/LibraryLayout";
 import SongList from "../components/SongList";
 import useMusicStore from "../store/useMusicStore";
-
-const EMPTY_ARRAY = Object.freeze([]);
+import { EMPTY_SONGS, getArtistId, formatSongCount } from "../utils/musicUtils";
 
 export default function ArtistDetailScreen({ route }) {
   const { artist } = route.params;
-  const artistSongs = useMusicStore((s) => s.libraryIndex.artistsById.get(artist)?.songs ?? EMPTY_ARRAY);
+  const artistId = route.params.artistId ?? getArtistId(artist);
+  const collection = useMusicStore((s) => s.libraryIndex.artistsById.get(artistId));
+  const artistSongs = collection?.songs ?? EMPTY_SONGS;
 
   return (
     <LibraryLayout
-      title={artist}
-      subtitle={`${artistSongs.length} songs`}
+      title={collection?.name ?? artist}
+      subtitle={formatSongCount(artistSongs.length)}
       showBack
       showRefresh={false}
     >

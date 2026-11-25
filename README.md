@@ -1,7 +1,12 @@
 # Android Music Player
 
+## Releases
+
+Latest version: [v1.0.1](https://github.com/USERNAME/REPOSITORY/releases/latest/download/MusicPlayer.apk)
+
 ## Table of Contents
 
+- [Releases](#releases)
 - [Description](#description)
 - [Badges](#badges)
 - [Visuals](#visuals)
@@ -12,7 +17,6 @@
 - [Authors and Acknowledgment](#authors-and-acknowledgment)
 - [License](#license)
 - [Project Status](#project-status)
-- [Releases](#releases)
 
 ## Description
 
@@ -69,10 +73,20 @@ adb shell am start -n com.example.androidmusicplayer/.MainActivity
 ## re-release
 
 cd C:\mp\android
-## then
+# Build the latest release
 .\gradlew.bat app:assembleRelease -PreactNativeArchitectures=arm64-v8a --no-build-cache
 ## app will be located at:
 C:\mp\android\app\build\outputs\apk\release\app-release.apk
+
+# Install on physical phone
+adb -d install -r ".\app\build\outputs\apk\release\app-release.apk"
+ 
+# Launch the app
+adb -d shell am force-stop com.example.androidmusicplayer
+adb -d shell am start -n com.example.androidmusicplayer/.MainActivity
+
+# Prepare GitHub APK
+Copy-Item ".\app\build\outputs\apk\release\app-release.apk" "C:\mp\MusicPlayer.apk" -Force
 
 ```
 ## Tech
@@ -116,7 +130,3 @@ Distributed under the MIT License. See LICENSE.txt for more information.
 ## Project status
 
 This project is complete.
-
-## Releases
-
-Latest version: [v1.0.1](https://github.com/USERNAME/REPOSITORY/releases/latest/download/MusicPlayer.apk)

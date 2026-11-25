@@ -15,12 +15,23 @@ const collator = new Intl.Collator(undefined, {
 
 /* -------------------- NORMALIZATION -------------------- */
 
+export function normalizeMetadata(value) {
+  return String(value ?? "")
+    .normalize("NFKC")
+    .toLowerCase()
+    .replace(/[‘’]/g, "'")
+    .replace(/[“”]/g, '"')
+    .replace(/[‐‑‒–—]/g, "-")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
 function normalize(value) {
-  return String(value ?? "").toLowerCase();
+  return normalizeMetadata(value);
 }
 
 function normalizeQuery(query) {
-  return normalize(query).trim();
+  return normalizeMetadata(query);
 }
 
 function readText(value) {
@@ -51,10 +62,7 @@ export function getAlbumArtist(song) {
 
 export function getYear(song) {
   const year = positiveInteger(song.year);
-
-  return year >= 1000 && year <= 9999
-    ? year
-    : null;
+  return year >= 1000 && year <= 9999 ? year : null;
 }
 
 export function getTrackNumber(song) {
@@ -66,7 +74,14 @@ export function getDiscNumber(song) {
 }
 
 export function getAlbumId(artist, album) {
-  return JSON.stringify([artist, album]);
+  return JSON.stringify([
+    normalizeMetadata(artist) || "unknown artist",
+    normalizeMetadata(album) || "unknown album",
+  ]);
+}
+
+export function getArtistId(artist) {
+  return normalizeMetadata(artist) || "unknown artist";
 }
 
 export function getFolderName(song) {
@@ -96,34 +111,21 @@ export function formatSongCount(count) {
 }
 
 export function formatTime(seconds) {
-  const total = Math.floor(
-    Math.max(0, Number(seconds) || 0)
-  );
-
+  const total = Math.floor(Math.max(0, Number(seconds) || 0));
   const minutes = Math.floor(total / 60);
   const remaining = total % 60;
-
   return `${minutes}:${String(remaining).padStart(2, "0")}`;
 }
 
 /* -------------------- SORTING -------------------- */
 
 export function compareSongTitles(a, b) {
-  return collator.compare(
-    a.title ?? "",
-    b.title ?? ""
-  );
+  return collator.compare(a.title ?? "", b.title ?? "");
 }
 
 export function compareAlbumTracks(a, b) {
   return (
-    (getDiscNumber(a) ?? 1) -
-      (getDiscNumber(b) ?? 1) ||
-
-    (getTrackNumber(a) ?? Infinity) -
-      (getTrackNumber(b) ?? Infinity) ||
-
-    compareSongTitles(a, b)
+    (getDiscNumber(a) ?? 1) - (getDiscNumber(b) ?? 1) || (getTrackNumber(a) ?? Infinity) - (getTrackNumber(b) ?? Infinity) || compareSongTitles(a, b)
   );
 }
 
@@ -230,7 +232,7 @@ export function createLibraryIndex(songs) {
 
     addToGroup(
       artistsById,
-      artist,
+      getArtistId(artist),
       {
         name: artist,
         artist: null,
@@ -257,8 +259,7 @@ export function createLibraryIndex(songs) {
 
     /* Folders */
 
-    addToGroup(
-      foldersById,
+    addToGroup(foldersById,
       getFolderId(song),
       {
         name: getFolderName(song),
@@ -306,10 +307,8 @@ export function filterSongs(songs, query) {
 
   if (!normalized) return songs;
 
-  return songs.filter((song) =>
-    getSongSearchValues(song).some((value) =>
-      value.includes(normalized)
-    )
+  return songs.filter(
+    (song) => getSongSearchValues(song).some((value) => value.includes(normalized))
   );
 }
 
@@ -318,10 +317,8 @@ export function filterCollections(collections, query) {
 
   if (!normalized) return collections;
 
-  return collections.filter((collection) =>
-    getCollectionSearchValues(collection).some((value) =>
-      value.includes(normalized)
-    )
+  return collections.filter(
+    (collection) => getCollectionSearchValues(collection).some((value) => value.includes(normalized))
   );
 }
 
@@ -404,4 +401,17 @@ export function resolvePlaylistSongs(songIds, songsById) {
   }
 
   return result;
+}
+
+// metadata normalization function
+
+export function normalizeMetadata(value) {
+  return String(value ?? "")
+    .normalize("NFKC")
+    .toLowerCase()
+    .replace(/[‘’]/g, "'")
+    .replace(/[“”]/g, '"')
+    .replace(/[‐‑‒–—]/g, "-")
+    .replace(/\s+/g, " ")
+    .trim();
 }

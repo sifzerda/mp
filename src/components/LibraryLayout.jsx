@@ -1,20 +1,8 @@
 // src/components/LibraryLayout.jsx
 
-import {
-  View,
-  Text,
-  Pressable,
-  StyleSheet,
-} from "react-native";
-
-import {
-  Settings,
-  RefreshCw,
-  ChevronLeft,
-} from "lucide-react-native";
-
+import { View, Text, Pressable, StyleSheet } from "react-native";
+import { Settings, RefreshCw, ChevronLeft } from "lucide-react-native";
 import { useNavigation } from "@react-navigation/native";
-
 import useMusicStore from "../store/useMusicStore";
 import useThemedStyles from "../theme/useThemedStyles";
 
@@ -26,10 +14,7 @@ export default function LibraryLayout({
   children,
 }) {
   const navigation = useNavigation();
-
-  const { colors, styles } =
-    useThemedStyles(createStyles);
-
+  const { colors, styles } = useThemedStyles(createStyles);
   const loadSongs = useMusicStore((s) => s.loadSongs);
   const loading = useMusicStore((s) => s.loading);
 

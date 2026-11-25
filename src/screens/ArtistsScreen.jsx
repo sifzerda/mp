@@ -1,10 +1,8 @@
 // src/screens/ArtistsScreen.jsx
 
 import { useCallback } from "react";
-
 import LibraryLayout from "../components/LibraryLayout";
 import CollectionList from "../components/CollectionList";
-
 import useMusicStore from "../store/useMusicStore";
 
 export default function ArtistsScreen({ navigation }) {
@@ -13,6 +11,7 @@ export default function ArtistsScreen({ navigation }) {
   const handleSelect = useCallback(
     (artist) => {
       navigation.navigate("ArtistDetail", {
+        artistId: artist.id,
         artist: artist.name,
       });
     },
@@ -22,7 +21,9 @@ export default function ArtistsScreen({ navigation }) {
   return (
     <LibraryLayout
       title="Artists"
-      subtitle={`${artists.length} artists`}
+      subtitle={`${artists.length} ${
+        artists.length === 1 ? "artist" : "artists"
+      }`}
     >
       <CollectionList
         collections={artists}
