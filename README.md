@@ -47,10 +47,7 @@ Features:
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT) 
 
-![JavaScript](https://img.shields.io/badge/javascript-%23323330.svg?style=for-the-badge&logo=javascript&logoColor=%23F7DF1E) ![GitHub](https://img.shields.io/badge/github-%23121011.svg?style=for-the-badge&logo=github&logoColor=white) ![HTML5](https://img.shields.io/badge/html5-%23E34F26.svg?style=for-the-badge&logo=html5&logoColor=white) ![React Native](https://img.shields.io/badge/react_native-%2320232a.svg?style=for-the-badge&logo=react&logoColor=%2361DAFB) ![Expo](https://img.shields.io/badge/expo-%231C1E24.svg?style=for-the-badge&logo=expo&logoColor=#D04A37) ![Gradle](https://img.shields.io/badge/Gradle-%2302303A.svg?style=for-the-badge&logo=Gradle&logoColor=white) ![Kotlin](https://img.shields.io/badge/kotlin-%237F52FF.svg?style=for-the-badge&logo=kotlin&logoColor=white)
-![Android](https://img.shields.io/badge/Android-%233DDC84.svg?style=for-the-badge&logo=android&logoColor=white)
-![Android Studio](https://img.shields.io/badge/Android_studio-%233DDC84.svg?style=for-the-badge&logo=android&logoColor=white)
-![Metro](https://img.shields.io/badge/Metro_bundler-EF4242.svg?style=for-the-badge&logo=Metro&logoColor=white)
+![JavaScript](https://img.shields.io/badge/javascript-%23323330.svg?style=for-the-badge&logo=javascript&logoColor=%23F7DF1E) ![GitHub](https://img.shields.io/badge/github-%23121011.svg?style=for-the-badge&logo=github&logoColor=white) ![HTML5](https://img.shields.io/badge/html5-%23E34F26.svg?style=for-the-badge&logo=html5&logoColor=white) ![React Native](https://img.shields.io/badge/react_native-%2320232a.svg?style=for-the-badge&logo=react&logoColor=%2361DAFB) ![Expo](https://img.shields.io/badge/expo-%231C1E24.svg?style=for-the-badge&logo=expo&logoColor=#D04A37) ![Gradle](https://img.shields.io/badge/Gradle-%2302303A.svg?style=for-the-badge&logo=Gradle&logoColor=white) ![Kotlin](https://img.shields.io/badge/kotlin-%237F52FF.svg?style=for-the-badge&logo=kotlin&logoColor=white) ![Android](https://img.shields.io/badge/Android-%233DDC84.svg?style=for-the-badge&logo=android&logoColor=white) ![Android Studio](https://img.shields.io/badge/Android_studio-%233DDC84.svg?style=for-the-badge&logo=android&logoColor=white) ![Metro](https://img.shields.io/badge/Metro_bundler-EF4242.svg?style=for-the-badge&logo=Metro&logoColor=white)
 
 ## Visuals
 
@@ -100,7 +97,7 @@ Copy-Item ".\app\build\outputs\apk\release\app-release.apk" "C:\mp\MusicPlayer.a
 
 - [React Native](https://reactnative.dev/)
 - [React Native Track Player](https://github.com/justinmachado/react-native-track-player)
-- [ React Native Draggable Flatlist](https://github.com/aksonov/react-native-draggable-flatlist)
+- [React Native Draggable Flatlist](https://github.com/aksonov/react-native-draggable-flatlist)
 - [React Native Async Storage](https://github.com/react-native-async-storage/async-storage)
 - [Expo](https://expo.dev/)
 - [Gradle](https://developer.android.com/studio)
@@ -108,7 +105,6 @@ Copy-Item ".\app\build\outputs\apk\release\app-release.apk" "C:\mp\MusicPlayer.a
 - [React Navigation](https://reactnavigation.org/)
 - [Expo Media Library](https://docs.expo.dev/versions/latest/sdk/media-library/)
 - [Zustand](https://github.com/pmndrs/zustand)
-- [React-Lucide] icons (https://www.npmjs.com/package/lucide-react-native)
 - [Metro Bundler](https://github.com/facebook/metro)
 
 ## Support
