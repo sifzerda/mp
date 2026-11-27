@@ -36,6 +36,10 @@ Features:
 - alter playback speed from 0.5x - 2x
 - album art from metadata or album art from uri
 
+### Playback capabilities:
+
+- .mp3, .wav, .flac, .aac, .m4a, .ogg, .opus, .amr
+
 ## Badges
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT) 

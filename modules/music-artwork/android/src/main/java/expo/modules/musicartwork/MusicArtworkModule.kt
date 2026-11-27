@@ -15,6 +15,14 @@ import java.security.MessageDigest
 import kotlin.math.max
 import kotlin.math.roundToInt
 
+import android.content.ContentValues
+import android.os.Environment
+import android.provider.OpenableColumns
+import android.media.MediaScannerConnection
+import android.webkit.MimeTypeMap
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.TimeUnit
+
 class MusicArtworkModule : Module() {
 
   companion object {
@@ -27,24 +35,118 @@ class MusicArtworkModule : Module() {
     private var lastPruneTime = 0L
   }
 
+/* -------------------- EXTERNAL AUDIO -------------------- */
+
+private fun getAudioFileInfo(
+    context: Context,
+    uri: Uri
+): Map<String, Any> {
+
+    val result = mutableMapOf<String, Any>()
+
+    var filename = uri.lastPathSegment
+        ?.substringAfterLast('/')
+        ?: "Unknown Audio"
+
+    var size = 0L
+
+    if (uri.scheme == "content") {
+        context.contentResolver.query(
+            uri,
+            arrayOf(
+                OpenableColumns.DISPLAY_NAME,
+                OpenableColumns.SIZE
+            ),
+            null,
+            null,
+            null
+        )?.use { cursor ->
+
+           if (cursor.moveToFirst()) {
+                val nameIndex = cursor.getColumnIndex(
+                    OpenableColumns.DISPLAY_NAME
+                )
+
+                val sizeIndex = cursor.getColumnIndex(
+                    OpenableColumns.SIZE
+                )
+
+                if (nameIndex >= 0) {
+                    filename = cursor.getString(nameIndex)
+                        ?: filename
+                }
+
+                if (sizeIndex >= 0 && !cursor.isNull(sizeIndex)) {
+                    size = cursor.getLong(sizeIndex)
+                }
+            }
+        }
+    } else if (uri.scheme == "file") {
+        val file = File(requireNotNull(uri.path))
+
+        filename = file.name
+        size = file.length()
+    }
+
+    val extension = filename
+        .substringAfterLast('.', "")
+        .lowercase()
+
+    val detectedMimeType = context.contentResolver.getType(uri)
+
+ val mimeType = detectedMimeType
+        ?.takeIf { it.startsWith("audio/") }
+        ?: MimeTypeMap.getSingleton()
+            .getMimeTypeFromExtension(extension)
+        ?: "application/octet-stream"
+
+    result["uri"] = uri.toString()
+    result["filename"] = filename
+    result["size"] = size
+    result["mimeType"] = mimeType
+
+    return result
+}
+
   /* -------------------- MODULE DEFINITION -------------------- */
 
   override fun definition() = ModuleDefinition {
     Name("MusicArtwork")
 
-    AsyncFunction("getMetadata") { uri: String ->
-  val context = requireNotNull(appContext.reactContext)
+    AsyncFunction("consumePendingAudioUris") {
+    val activity = appContext.currentActivity
+
+    if (activity == null) {
+        emptyList<String>()
+    } else {
+        val method = activity.javaClass.getMethod("consumePendingAudioUris")
+
+        @Suppress("UNCHECKED_CAST")
+        (method.invoke(null) as? List<String>) ?: emptyList<String>()
+    }
+}
+
+AsyncFunction("getAudioFileInfo") { uri: String -> val context = requireNotNull(appContext.reactContext)
+
+    getAudioFileInfo(context, Uri.parse(uri))
+}
+
+AsyncFunction("importAudioFile") { uri: String -> val context = requireNotNull(appContext.reactContext)
+
+    importAudioFile(context, Uri.parse(uri))
+}
+
+    AsyncFunction("getMetadata") { uri: String -> val context = requireNotNull(appContext.reactContext)
   extractMetadata(context, uri)
 }
 
-    AsyncFunction("getMusicFolders") {
+ AsyncFunction("getMusicFolders") {
       val context = requireNotNull(appContext.reactContext)
       getMusicFolders(context)
     }
 
     AsyncFunction("getArtwork") {
-      uri: String, size: Int, version: String ->
-      val context = requireNotNull(appContext.reactContext)
+      uri: String, size: Int, version: String -> val context = requireNotNull(appContext.reactContext)
       extractArtwork(context, uri, size.coerceIn(64, 1024), version)
     }
 
@@ -125,7 +227,7 @@ class MusicArtworkModule : Module() {
         }
       }
 
-      read(
+     read(
         MediaMetadataRetriever.METADATA_KEY_BITRATE
       )?.toIntOrNull()?.let {
         metadata["bitrate"] = it
@@ -166,7 +268,7 @@ class MusicArtworkModule : Module() {
 
   /* -------------------- MUSIC FOLDERS -------------------- */
 
-  private fun getMusicFolders(
+ private fun getMusicFolders(
     context: Context
   ): Map<String, Map<String, String>> {
 
@@ -284,7 +386,7 @@ class MusicArtworkModule : Module() {
       }
   }
 
-  /* -------------------- ARTWORK EXTRACTION -------------------- */
+   /* -------------------- ARTWORK EXTRACTION -------------------- */
 
   private fun extractArtwork(
     context: Context,
@@ -315,7 +417,7 @@ class MusicArtworkModule : Module() {
       }
     }
 
-    val retriever = MediaMetadataRetriever()
+   val retriever = MediaMetadataRetriever()
 
     var decodedBitmap: Bitmap? = null
     var resizedBitmap: Bitmap? = null
@@ -382,7 +484,7 @@ class MusicArtworkModule : Module() {
 
       temporaryFile = temp
 
-      val success = temp.outputStream().use {
+    val success = temp.outputStream().use {
         resized.compress(
           Bitmap.CompressFormat.JPEG,
           JPEG_QUALITY,
@@ -529,4 +631,170 @@ class MusicArtworkModule : Module() {
       }
     }
   }
-}
+
+  /* -------------------- IMPORT MUSIC FILES -------------------- */
+
+private fun importAudioFile(
+    context: Context,
+    source: Uri
+): Map<String, Any> {
+
+    require(
+        source.scheme == "content" ||
+        source.scheme == "file"
+    ) {
+        "Unsupported audio URI"
+    }
+
+    val resolver = context.contentResolver
+    val info = getAudioFileInfo(context, source)
+
+    val filename = (info["filename"] as String)
+        .replace(Regex("""[\\/:*?"<>|]"""), "_")
+        .trim()
+        .takeIf { it.isNotBlank() && it != "." && it != ".." }
+        ?: "Imported Audio"
+
+    val mimeType = info["mimeType"] as String
+
+    require(mimeType.startsWith("audio/")) {
+        "Unsupported audio file type"
+    }
+
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+
+        val values = ContentValues().apply {
+            put(
+                MediaStore.Audio.Media.DISPLAY_NAME,
+                filename
+            )
+
+            put(
+                MediaStore.Audio.Media.MIME_TYPE,
+                mimeType
+            )
+
+            put(
+                MediaStore.Audio.Media.RELATIVE_PATH,
+                "${Environment.DIRECTORY_MUSIC}/Music Player/"
+            )
+
+            put(
+                MediaStore.Audio.Media.IS_PENDING,
+                1
+            )
+
+            put(
+                MediaStore.Audio.Media.IS_MUSIC,
+                1
+            )
+        }
+
+        val collection = MediaStore.Audio.Media.getContentUri(
+            MediaStore.VOLUME_EXTERNAL_PRIMARY
+        )
+
+      val destination = resolver.insert(
+            collection,
+            values
+        ) ?: error("Unable to create audio file")
+
+        try {
+            val input = resolver.openInputStream(source)
+                ?: error("Unable to read audio file")
+
+            input.use { sourceStream ->
+                val output = resolver.openOutputStream(destination)
+                    ?: error("Unable to write audio file")
+
+                output.use { destinationStream ->
+                    sourceStream.copyTo(destinationStream)
+                }
+            }
+
+            val completed = ContentValues().apply {
+                put(MediaStore.Audio.Media.IS_PENDING, 0)
+            }
+
+            resolver.update(
+                destination,
+                completed,
+                null,
+                null
+            )
+
+   return getAudioFileInfo(context, destination)
+
+        } catch (error: Exception) {
+            resolver.delete(destination, null, null)
+            throw error
+        }
+    }
+
+    // Android 9 and earlier.
+    @Suppress("DEPRECATION")
+    val musicDirectory = Environment
+        .getExternalStoragePublicDirectory(
+            Environment.DIRECTORY_MUSIC
+        )
+
+    val directory = File(
+        musicDirectory,
+        "Music Player"
+    )
+
+    if (!directory.exists() && !directory.mkdirs()) {
+        error("Unable to create music directory")
+    }
+
+    var destination = File(directory, filename)
+
+    val extension = filename.substringAfterLast('.', "")
+    val basename = filename.substringBeforeLast('.')
+
+    var index = 1
+
+    while (destination.exists()) {
+        val suffix = if (extension.isBlank()) {
+            ""
+        } else {
+            ".$extension"
+        }
+
+        destination = File(
+            directory,
+            "$basename ($index)$suffix"
+        )
+
+        index++
+    }
+
+    try {
+        val input = resolver.openInputStream(source)
+            ?: error("Unable to read audio file")
+
+        input.use { sourceStream ->
+            destination.outputStream().use { output ->
+                sourceStream.copyTo(output)
+            }
+        }
+
+        val latch = CountDownLatch(1)
+        var scannedUri: Uri? = null
+
+        MediaScannerConnection.scanFile(
+            context,
+            arrayOf(destination.absolutePath),
+            arrayOf(mimeType)
+        ) { _, uri ->
+            scannedUri = uri
+            latch.countDown()
+        }
+
+        latch.await(10, TimeUnit.SECONDS)
+
+        return getAudioFileInfo(
+            context,
+            scannedUri ?: Uri.fromFile(destination)
+        )
+    }

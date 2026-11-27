@@ -22,22 +22,27 @@ export interface MusicFolder {
   folderVolume: string;
 }
 
+export interface AudioFileInfo {
+  uri: string;
+  filename: string;
+  size: number;
+  mimeType: string;
+}
+
 export interface MusicArtworkModule {
-  getArtwork(
-    uri: string,
-    size?: number,
-    version?: string
-  ): Promise<string | null>;
+  getArtwork(uri: string, size?: number, version?: string): Promise<string | null>;
 
-  getMetadata(
-    uri: string
-  ): Promise<MusicMetadata>;
+  getMetadata(uri: string): Promise<MusicMetadata>;
 
-  getMusicFolders(): Promise<
-    Record<string, MusicFolder>
-  >;
+  getMusicFolders(): Promise<Record<string, MusicFolder>>;
 
   clearCache(): Promise<void>;
+
+  consumePendingAudioUris(): Promise<string[]>;
+
+getAudioFileInfo(uri: string): Promise<AudioFileInfo>;
+
+importAudioFile(uri: string): Promise<AudioFileInfo>;
 }
 
 declare const MusicArtwork: MusicArtworkModule;

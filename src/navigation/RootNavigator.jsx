@@ -7,7 +7,10 @@ import {
   DarkTheme,
   DefaultTheme,
 } from "@react-navigation/native";
-
+import {
+  navigationRef,
+  flushPendingNavigation,
+} from "./navigationRef";
 import {
   createNativeStackNavigator,
 } from "@react-navigation/native-stack";
@@ -44,7 +47,11 @@ export default function RootNavigator() {
   }, [colors]);
 
   return (
-    <NavigationContainer theme={theme}>
+    <NavigationContainer
+      ref={navigationRef}
+      theme={theme}
+      onReady={flushPendingNavigation}
+    >
       <Stack.Navigator
         initialRouteName="Library"
         screenOptions={{

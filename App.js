@@ -1,32 +1,92 @@
 // App.js
 
 import { useEffect, useState } from "react";
-import { View, Text, ActivityIndicator, StyleSheet } from "react-native";
-import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
-import { GestureHandlerRootView } from "react-native-gesture-handler";
+
+import {
+  View,
+  Text,
+  ActivityIndicator,
+  StyleSheet,
+  StatusBar,
+  AppState,
+} from "react-native";
+
+import {
+  SafeAreaProvider,
+  SafeAreaView,
+} from "react-native-safe-area-context";
+
+import {
+  GestureHandlerRootView,
+} from "react-native-gesture-handler";
+
 import RootNavigator from "./src/navigation/RootNavigator";
 import useThemedStyles from "./src/theme/useThemedStyles";
+
 import { initializePlayer } from "./src/services/audioService";
-import { StatusBar } from "react-native";
+
+import useExternalAudio from "./src/hooks/useExternalAudio";
+import ExternalAudioModal from "./src/components/ExternalAudioModal";
 
 export default function App() {
   const { colors, styles } = useThemedStyles(createStyles);
+
   const [ready, setReady] = useState(false);
   const [error, setError] = useState(null);
 
-    useEffect(() => {
-    let mounted = true;
+  const externalAudio = useExternalAudio(ready);
 
-    initializePlayer()
-      .then(() => {
-        if (mounted) setReady(true);
-      })
-      .catch((error) => {
-        if (mounted) setError(error.message);
-      });
+  useEffect(() => {
+    let mounted = true;
+    let initializing = false;
+    let initialized = false;
+
+    async function setup() {
+      if (
+        !mounted ||
+        initializing ||
+        initialized ||
+        AppState.currentState !== "active"
+      ) {
+        return;
+      }
+
+      initializing = true;
+
+      try {
+        await initializePlayer();
+
+        initialized = true;
+
+        if (mounted) {
+          setError(null);
+          setReady(true);
+        }
+      } catch (error) {
+        if (mounted) {
+          setError(
+            error?.message || "Unable to initialize audio player"
+          );
+        }
+      } finally {
+        initializing = false;
+      }
+    }
+
+    const subscription = AppState.addEventListener(
+      "change",
+      (state) => {
+        if (state === "active") {
+          void setup();
+        }
+      }
+    );
+
+    void setup();
 
     return () => {
       mounted = false;
+      subscription.remove();
     };
   }, []);
 
@@ -60,7 +120,13 @@ export default function App() {
               </Text>
             </View>
           ) : (
-            <RootNavigator />
+            <>
+              <RootNavigator />
+
+              <ExternalAudioModal
+                {...externalAudio}
+              />
+            </>
           )}
         </SafeAreaView>
       </SafeAreaProvider>
