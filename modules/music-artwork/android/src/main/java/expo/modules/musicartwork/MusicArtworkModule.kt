@@ -716,12 +716,7 @@ private fun importAudioFile(
                 put(MediaStore.Audio.Media.IS_PENDING, 0)
             }
 
-            resolver.update(
-                destination,
-                completed,
-                null,
-                null
-            )
+            resolver.update(destination, completed, null, null)
 
    return getAudioFileInfo(context, destination)
 
@@ -734,14 +729,9 @@ private fun importAudioFile(
     // Android 9 and earlier.
     @Suppress("DEPRECATION")
     val musicDirectory = Environment
-        .getExternalStoragePublicDirectory(
-            Environment.DIRECTORY_MUSIC
-        )
+        .getExternalStoragePublicDirectory(Environment.DIRECTORY_MUSIC)
 
-    val directory = File(
-        musicDirectory,
-        "Music Player"
-    )
+    val directory = File(musicDirectory, "Music Player")
 
     if (!directory.exists() && !directory.mkdirs()) {
         error("Unable to create music directory")
@@ -761,25 +751,19 @@ private fun importAudioFile(
             ".$extension"
         }
 
-        destination = File(
-            directory,
-            "$basename ($index)$suffix"
-        )
+        destination = File(directory, "$basename ($index)$suffix")
 
         index++
     }
 
     try {
-        val input = resolver.openInputStream(source)
-            ?: error("Unable to read audio file")
+        val input = resolver.openInputStream(source) ?: error("Unable to read audio file")
 
-        input.use { sourceStream ->
-            destination.outputStream().use { output ->
-                sourceStream.copyTo(output)
+        input.use { sourceStream -> destination.outputStream().use { output -> sourceStream.copyTo(output)
             }
         }
 
-        val latch = CountDownLatch(1)
+               val latch = CountDownLatch(1)
         var scannedUri: Uri? = null
 
         MediaScannerConnection.scanFile(
@@ -797,4 +781,10 @@ private fun importAudioFile(
             context,
             scannedUri ?: Uri.fromFile(destination)
         )
+
+    } catch (error: Exception) {
+        destination.delete()
+        throw error
     }
+  }
+}

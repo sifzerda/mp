@@ -2,7 +2,9 @@
 
 ## Releases
 
-Latest version: [v1.0.1](https://github.com/USERNAME/REPOSITORY/releases/latest/download/MusicPlayer.apk)
+- [v1.0.3](https://github.com/USERNAME/REPOSITORY/releases/latest/download/MusicPlayer.apk): added audio file library importation, changed default bg to match custom styles
+- v1.02: added album art from uri, metadata extraction and normalization
+- v1.01: initial app
 
 ## Table of Contents
 
@@ -38,7 +40,8 @@ Features:
 
 ### Playback capabilities:
 
-- .mp3, .wav, .flac, .aac, .m4a, .ogg, .opus, .amr
+- Sound files: .mp3, .wav, .flac, .aac, .m4a, .ogg, .opus, .amr
+- Android Arhcitecture: supports ARM64, x86, x86_64, armeabi-v7a
 
 ## Badges
 
