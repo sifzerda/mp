@@ -10,6 +10,7 @@
 
 - [Releases](#releases)
 - [Description](#description)
+- [Installation](#installation)
 - [Badges](#badges)
 - [Visuals](#visuals)
 - [Installation](#installation)
@@ -37,6 +38,21 @@ Features:
 - re-arrangeable song queues
 - alter playback speed from 0.5x - 2x
 - album art from metadata or album art from uri
+
+## Installation
+
+Music Player is a free, offline music player for Android devices.
+
+1. Visit the [latest release](https://github.com/sifzerda/mp/releases/latest).
+2. Download the APK file under **Assets**.
+3. Open the downloaded APK on your Android device.
+4. If prompted, allow installation from your browser or file manager.
+5. Tap **Install**.
+6. Open Music Player and grant music and audio permissions.
+
+### Updating
+
+Download and install the latest APK over your existing installation. Do not uninstall the application before updating.
 
 ### Playback capabilities:
 
